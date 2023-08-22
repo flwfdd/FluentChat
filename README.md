@@ -1,5 +1,12 @@
-# FluentIM
+# FluentChat
 基于FluentUI的大三小学期东软实训即时通讯软件Linpop
+
+克隆仓库：
+```shell
+git clone --recursive https://github.com/flwfdd/FluentChat.git
+```
+
+然后使用`Qt Creator`打开根目录下的`CMakeList.txt`即可。
 
 ## 引入FluentUI
 
