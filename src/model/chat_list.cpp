@@ -7,8 +7,8 @@ ChatListModelItem::ChatListModelItem(QObject *parent) : QObject(parent),
 {
 }
 
-ChatListModelItem::ChatListModelItem(int id, const QString &title, const QString &text, int unreadNum, const QColor &color, const QString &avatar, QObject *parent)
-    : QObject(parent), m_id(id), m_title(title), m_text(text), m_unreadNum(unreadNum), m_color(color), m_avatar(avatar)
+ChatListModelItem::ChatListModelItem(int id, UserModel* user, const QString &text, qint64 time, int unreadNum, QObject *parent)
+    : QObject(parent), m_id(id), m_user(user), m_text(text), m_unreadNum(unreadNum), m_time(time)
 {
 }
 
@@ -25,16 +25,16 @@ void ChatListModelItem::setId(int id)
     }
 }
 
-QString ChatListModelItem::title() const
+UserModel* ChatListModelItem::user() const
 {
-    return m_title;
+    return m_user;
 }
 
-void ChatListModelItem::setTitle(const QString &title)
+void ChatListModelItem::setUser(UserModel *user)
 {
-    if (m_title != title) {
-        m_title = title;
-        emit titleChanged();
+    if (m_user != user) {
+        m_user = user;
+        emit userChanged();
     }
 }
 
@@ -51,6 +51,19 @@ void ChatListModelItem::setText(const QString &text)
     }
 }
 
+qint64 ChatListModelItem::time() const
+{
+    return m_time;
+}
+
+void ChatListModelItem::setTime(qint64 time)
+{
+    if (m_time != time) {
+        m_time = time;
+        emit timeChanged();
+    }
+}
+
 int ChatListModelItem::unreadNum() const
 {
     return m_unreadNum;
@@ -63,34 +76,6 @@ void ChatListModelItem::setUnreadNum(int unreadNum)
         emit unreadNumChanged();
     }
 }
-
-QColor ChatListModelItem::color() const
-{
-    return m_color;
-}
-
-void ChatListModelItem::setColor(const QColor &color)
-{
-    if (m_color != color) {
-        m_color = color;
-        emit colorChanged();
-    }
-}
-
-QString ChatListModelItem::avatar() const
-{
-    return m_avatar;
-}
-
-void ChatListModelItem::setAvatar(const QString &avatar)
-{
-    if (m_avatar != avatar) {
-        m_avatar = avatar;
-        emit avatarChanged();
-    }
-}
-
-
 
 
 

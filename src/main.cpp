@@ -1,15 +1,28 @@
 #include "qqmlcontext.h"
-#include "viewmodel/chat_list.h"
+#include "model/chat_list.h"
+#include "model/message_list.h"
+#include "global/store.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
 
 void inject(QQmlApplicationEngine &engine){
-    ChatListModel* chatListModel=new ChatListModel();
-    for(int i=0;i<10;i++){
-        chatListModel->append(new ChatListModelItem(i,"小苏"+QString::number(i) ,"啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",i,QColor("#aef"),"🤔"));
+    auto store=Store::instance();
+    auto users=Store::instance()->users();
+    for(int i=0;i<111;i++){
+        auto user=new UserModel(i,"su"+QString::number(i),"啊啊",QColor("#aef"),"🤔","啊啊啊",rand()%2);
+        users->insert(i,user);
+        store->chatList()->append(new ChatListModelItem(i,user ,"啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊啊",1692841710-100000*i,rand()%111));
     }
-    engine.rootContext()->setContextProperty("chatListModel", chatListModel);
+
+    store->setCurrentUser(users->value(1));
+
+    auto messageListModel= store->messageList();
+    for(int i=0;i<111;i++){
+        messageListModel->append(new MessageListModelItem(i,"text","啊\n啊啊\n\n啊啊啊",1692841710-100000*i,users->value(i),0,0,false));
+    }
+
+    engine.rootContext()->setContextProperty("store", store);
 }
 
 int main(int argc, char *argv[])

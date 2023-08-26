@@ -21,7 +21,7 @@ FluWindow {
             z: 999
             height: parent.height
             width: 300
-            chatListM: chatListModel
+            chatList: store.chatList
             footerItems: FluObject {
 
                 property var navigationView

@@ -4,10 +4,12 @@ import QtQuick.Controls
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import FluentUI
+import "qrc:/FluentChat/ui/global"
+import "qrc:/FluentChat/ui/component"
 
 Item {
     id: control
-    property var chatListM
+    property var chatList
     property FluObject footerItems
     property Component autoSuggestBox
     property double chat_item_height:66
@@ -46,16 +48,16 @@ Item {
                     z: -100
                 }
                 onClicked: {
-                    nav_list.currentIndex = _idx
+                    chat_list.currentIndex = _idx
                     layout_footer.currentIndex = -1
-                    chatListM.onClick(model)
+                    chatList.onClick(model)
                 }
                 Rectangle {
                     radius: 4
                     anchors.fill: parent
                     color: {
                         if (FluTheme.dark) {
-                            if (nav_list.currentIndex === _idx) {
+                            if (chat_list.currentIndex === _idx) {
                                 return Qt.rgba(1, 1, 1, 0.06)
                             }
                             if (item_control.hovered) {
@@ -63,7 +65,7 @@ Item {
                             }
                             return Qt.rgba(0, 0, 0, 0)
                         } else {
-                            if (nav_list.currentIndex === _idx) {
+                            if (chat_list.currentIndex === _idx) {
                                 return Qt.rgba(0, 0, 0, 0.06)
                             }
                             if (item_control.hovered) {
@@ -73,77 +75,110 @@ Item {
                         }
                     }
 
-                    Rectangle {
+                    ChatAvatar{
                         id: item_avatar
-                        width: 42
-                        height: width
-                        radius: width / 2
-                        color: model.color
+                        user:model.user
+                        size: 42
                         anchors {
                             verticalCenter: parent.verticalCenter
                             left: parent.left
                             leftMargin: 10
                         }
-
-                        FluText {
-                            anchors.centerIn: parent
-                            text: model.avatar ? [...model.avatar][0] : "" //截取可能含有emoji的字符串的第一个字符
-                            color: "white"
-                            font.pixelSize: 24
-                        }
                     }
 
-                    Column {
+                    FluText {
+                        id: item_title
+                        text: model.user.remark ? model.user.remark : model.user.username
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        font.pixelSize: 16
+                        color: {
+                            if (item_control.pressed) {
+                                return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120
+                            }
+                            return FluTheme.dark ? FluColors.White : FluColors.Grey220
+                        }
                         anchors {
+                            left: item_avatar.right
+                            leftMargin: 10
+                            right: time_text.left
+                            rightMargin: 5
                             verticalCenter: parent.verticalCenter
+                            verticalCenterOffset: -10
+                        }
+                    }
+                    FluText {
+                        id: item_text
+                        text: model.text
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                        font.pixelSize: 12
+                        color: {
+                            if (item_control.pressed) {
+                                return FluTheme.dark ? FluColors.Grey120 : FluColors.Grey80
+                            }
+                            return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120
+                        }
+                        anchors {
                             left: item_avatar.right
                             leftMargin: 10
                             right: unread_badge.left
-                        }
-                        FluText {
-                            id: item_title
-                            text: model.title
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
-                            font.pixelSize: 16
-                            color: {
-                                if (item_control.pressed) {
-                                    return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120
-                                }
-                                return FluTheme.dark ? FluColors.White : FluColors.Grey220
-                            }
-                            anchors {
-                                left: parent.left
-                                right: parent.right
-                            }
-                        }
-                        FluText {
-                            id: item_text
-                            text: model.text
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
-                            font.pixelSize: 12
-                            color: {
-                                if (item_control.pressed) {
-                                    return FluTheme.dark ? FluColors.Grey80 : FluColors.Grey120
-                                }
-                                return FluTheme.dark ? FluColors.White : FluColors.Grey220
-                            }
-                            anchors {
-                                left: parent.left
-                                right: parent.right
-                            }
+                            rightMargin: 5
+                            verticalCenter: parent.verticalCenter
+                            verticalCenterOffset: 10
                         }
                     }
 
-                    FluBadge {
-                        id: unread_badge
-                        anchors {
+                    FluText{
+                        id: time_text
+                        anchors{
                             right: parent.right
                             verticalCenter: parent.verticalCenter
+                            verticalCenterOffset: -10
                             rightMargin: 10
                         }
-                        count: model.unreadNum
+                        text: GlobalTool.formatTime(model.time)
+                        font.pixelSize: 10
+                        color: item_text.color
+                    }
+
+                    Rectangle{
+                        id: unread_badge
+                        color:Qt.rgba(255/255,77/255,79/255,1)
+                        width: {
+                            if(model.unreadNum<10){
+                                return 20
+                            }else if(model.unreadNum<100){
+                                return 30
+                            }
+                            return 35
+                        }
+                        height: 20
+                        radius: 10
+                        border.width: 0
+                        anchors{
+                            right: parent.right
+                            verticalCenter: parent.verticalCenter
+                            verticalCenterOffset: 10
+                            rightMargin: 10
+                        }
+                        visible: model.unreadNum!==0
+                        Text{
+                            anchors{
+                                verticalCenter: parent.verticalCenter
+                                horizontalCenter: parent.horizontalCenter
+                                verticalCenterOffset: 1
+                            }
+
+                            color: Qt.rgba(1,1,1,1)
+                            text:{
+                                if(model.unreadNum<100)
+                                    return model.unreadNum
+                                return "99+"
+                            }
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
                     }
                 }
             }
@@ -151,7 +186,7 @@ Item {
     }
 
     Component {
-        id: com_footer_item
+        id: footer_item
         Item {
             clip: true
             height: footer_item_height
@@ -172,8 +207,8 @@ Item {
                 onClicked: {
                     model.tapFunc()
                     layout_footer.currentIndex = _idx
-                    nav_list.currentIndex = -1
-                    chatListM.currentItem=null
+                    chat_list.currentIndex = -1
+                    chatList.currentItem=null
                 }
                 Rectangle {
                     radius: 4
@@ -225,23 +260,7 @@ Item {
                         anchors {
                             verticalCenter: parent.verticalCenter
                             left: item_icon.right
-                            right: item_dot_loader.left
-                        }
-                    }
-                    Loader {
-                        id: item_dot_loader
-                        property bool isDot: (item_dot_loader.item && item_dot_loader.item.isDot)
-                        anchors {
                             right: parent.right
-                            verticalCenter: parent.verticalCenter
-                            rightMargin: isDot ? 3 : 10
-                            verticalCenterOffset: isDot ? -8 : 0
-                        }
-                        sourceComponent: {
-                            if (model.infoBadge) {
-                                return model.infoBadge
-                            }
-                            return undefined
                         }
                     }
                 }
@@ -256,31 +275,53 @@ Item {
             top: parent.top
             bottom: parent.bottom
         }
+        color: FluTheme.dark ? Window.active ?  Qt.rgba(38/255,44/255,54/255,1) : Qt.rgba(39/255,39/255,39/255,1) : Qt.rgba(251/255,251/255,253/255,1)
         border.color: FluTheme.dark ? Qt.rgba(45 / 255, 45 / 255, 45 / 255, 1) : Qt.rgba(226 / 255, 230 / 255, 234 / 255, 1)
         border.width: 1
-        color: "transparent"
         Item {
             id: layout_header
             width: layout_list.width
-            clip: true
-            y: 10
-            height: autoSuggestBox ? 38 : 0
-            Loader {
-                id: loader_auto_suggest_box
-                anchors.centerIn: parent
-                sourceComponent: autoSuggestBox
+            height: 50
+            FluAutoSuggestBox {
+                anchors {
+                    left: parent.left
+                    leftMargin: 15
+                    right: add_button.left
+                    rightMargin: 10
+                    verticalCenter: parent.verticalCenter
+                }
+                iconSource: FluentIcons.Search
+                //            items: ItemsOriginal.getSearchData()
+                placeholderText: "搜索"
+                onItemClicked:
+                        (data) => {
+                    // ItemsOriginal.startPageByItem(data)
+                }
+            }
+            FluIconButton {
+                id: add_button
+                anchors {
+                    right: parent.right
+                    rightMargin: 15
+                    verticalCenter: parent.verticalCenter
+                }
+                iconSource: FluentIcons.Add
+                iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                onClicked: {
+                    // ItemsOriginal.startPageByItem(data)
+                }
             }
         }
 
         Item{
             id: highlight_clip
-            anchors.fill: layout_flickable
+            anchors.fill: chat_list
             clip: true
 
             Rectangle {
                 id: highlight_rectangle
                 height: chat_item_height
-                color: FluTheme.primaryColor.dark
+                color: FluTheme.primaryColor.normal
                 width: 4
                 radius: width / 2
                 anchors {
@@ -312,85 +353,78 @@ Item {
         }
 
 
-
-        Flickable {
-            id: layout_flickable
+        ListView {
+            id: chat_list
+            clip: true
             anchors {
                 top: layout_header.bottom
-                topMargin: 6
                 left: parent.left
                 right: parent.right
                 bottom: layout_footer.top
             }
-            boundsBehavior: ListView.StopAtBounds
-            clip: true
-            contentHeight: nav_list.contentHeight
-            ScrollBar.vertical: FluScrollBar {
-            }
-            ListView {
-                id: nav_list
-                clip: true
-                anchors.fill: parent
-                model: chatListM.items
-                boundsBehavior: ListView.StopAtBounds
+            model: chatList.items
+            ScrollBar.vertical: FluScrollBar {}
+            boundsBehavior: Flickable.DragOverBounds
 
-                onCurrentIndexChanged: {
-                    if(nav_list.currentIndex!==-1){
-                        highlight_clip.clip=true
-                        highlight_rectangle.height=chat_item_height*0.5
-                        highlight_rectangle.y= nav_list.currentItem.y-layout_flickable.contentY + (chat_item_height - chat_item_height*0.5) / 2
-                    }
+            onCurrentIndexChanged: {
+                if(chat_list.currentIndex!==-1){
+                    highlight_clip.clip=true
+                    highlight_rectangle.height=chat_item_height*0.5
+                    highlight_rectangle.y= chat_list.currentItem.y-chat_list.contentY + (chat_item_height - chat_item_height*0.5) / 2
                 }
+            }
 
-                Connections{
-                    // 监听使得高亮位置跟随当前聊天窗口
-                    target: chatListM
-                    function onItemsChanged(){
-                        updateIndex()
-                    }
-                    function updateIndex(){
-                        for(var i=0;i<chatListM.items.length;i++){
-                            if(chatListM.items[i]===chatListM.currentItem){
-                                nav_list.currentIndex=i
-                                break
-                            }
+            Connections{
+                // 监听数据源变化
+                target: chatList
+                function onItemsChanged(){
+                    updateList()
+                }
+                function updateList(){
+                    for(var i=0;i<chatList.items.length;i++){
+                        if(chatList.items[i]===chatList.currentItem){
+                            chat_list.currentIndex=i
                         }
                     }
-                }
 
-                delegate: Loader {
-                    property var model: modelData
-                    property var _idx: index
-                    property int type: 0
-                    sourceComponent: chat_item
+                    // 防止列表更新时滚轮自动移动到选中项
+                    chat_list.contentY=chat_list.lastContentY
                 }
             }
 
+            property var lastTopItem
+            property double lastContentY:0
             onContentYChanged: {
-                if(nav_list.currentIndex!==-1){
-                    highlight_clip.clip=true
-                    highlight_rectangle.enableAnimation=false
-                    highlight_rectangle.height=chat_item_height*0.5
-                    highlight_rectangle.y= nav_list.currentItem.y-layout_flickable.contentY + (chat_item_height - chat_item_height*0.5) / 2
-                    highlight_rectangle.enableAnimation=true
+                var imm=(lastContentY-chat_list.contentY!=0.0) // 高亮是否关闭动画 用于滚动跟随
+                if(chat_list.lastTopItem===chatList.items[0]){
+                    lastContentY=chat_list.contentY
                 }
+                else chat_list.lastTopItem=chatList.items[0]
+
+
+                if(chat_list.currentIndex!==-1&&chat_list.currentItem){
+                    highlight_clip.clip=true
+                    if(imm)highlight_rectangle.enableAnimation=false
+                    highlight_rectangle.height=chat_item_height*0.5
+                    highlight_rectangle.y= chat_list.currentItem.y-chat_list.contentY + (chat_item_height - chat_item_height*0.5) / 2
+                    if(imm)highlight_rectangle.enableAnimation=true
+                }
+            }
+
+            delegate: Loader {
+                property var model: modelData
+                property var _idx: index
+                property int type: 0
+                sourceComponent: chat_item
             }
         }
 
-        // 分割线
-        Rectangle{
-            color: FluTheme.dark ? Qt.rgba(80/255,80/255,80/255,1) : Qt.rgba(210/255,210/255,210/255,1)
-            width: layout_list.width
-            height: 1
-            anchors.top:layout_flickable.bottom
-            z:-1
-        }
-
+        // 底部菜单
         ListView {
             id: layout_footer
             clip: true
             width: parent.width
-            height: childrenRect.height
+            height: contentHeight
             anchors.bottom: parent.bottom
             boundsBehavior: ListView.StopAtBounds
             currentIndex: -1
@@ -399,17 +433,27 @@ Item {
                     return footerItems.children
                 }
             }
+
+            // 顶部分割线
+            header: Rectangle{
+                color: FluTheme.dark ? Qt.rgba(80/255,80/255,80/255,1) : Qt.rgba(210/255,210/255,210/255,1)
+                width: layout_list.width
+                height: 1
+                z:-1
+            }
+
             delegate: Loader {
                 property var model: modelData
                 property var _idx: index
                 property int type: 1
-                sourceComponent: com_footer_item
+                sourceComponent: footer_item
             }
+
             onCurrentIndexChanged: {
                 if(layout_footer.currentIndex!==-1){
                     highlight_clip.clip=false
                     highlight_rectangle.height=footer_item_height*0.5
-                    highlight_rectangle.y= layout_footer.y-layout_flickable.y+layout_footer.currentItem.y + (footer_item_height - footer_item_height*0.5) / 2
+                    highlight_rectangle.y= layout_footer.y-chat_list.y+layout_footer.currentItem.y + (footer_item_height - footer_item_height*0.5) / 2
                 }
             }
 
@@ -418,7 +462,7 @@ Item {
                     highlight_clip.clip=false
                     highlight_rectangle.enableAnimation=false
                     highlight_rectangle.height=footer_item_height*0.5
-                    highlight_rectangle.y= layout_footer.y-layout_flickable.y+layout_footer.currentItem.y + (footer_item_height - footer_item_height*0.5) / 2
+                    highlight_rectangle.y= layout_footer.y-chat_list.y+layout_footer.currentItem.y + (footer_item_height - footer_item_height*0.5) / 2
                     highlight_rectangle.enableAnimation=true
                 }
             }
