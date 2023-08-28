@@ -12,8 +12,8 @@ Item {
     property var chatList
     property FluObject footerItems
     property Component autoSuggestBox
-    property double chat_item_height:66
-    property double footer_item_height:42
+    property double chat_item_height: 66
+    property double footer_item_height: 42
 
     Component {
         id: chat_item
@@ -50,7 +50,7 @@ Item {
                 onClicked: {
                     chat_list.currentIndex = _idx
                     layout_footer.currentIndex = -1
-                    chatList.onClick(model)
+                    store.control.openGroup(model)
                 }
                 Rectangle {
                     radius: 4
@@ -75,9 +75,11 @@ Item {
                         }
                     }
 
-                    ChatAvatar{
+                    ChatAvatar {
                         id: item_avatar
-                        user:model.user
+                        avatar: model.type === "twin" ? model.owner.avatar : model.avatar
+                        bgColor: model.type === "twin" ? model.owner.color : model.color
+                        online: model.type === "twin" ? model.owner.online : false
                         size: 42
                         anchors {
                             verticalCenter: parent.verticalCenter
@@ -88,7 +90,7 @@ Item {
 
                     FluText {
                         id: item_title
-                        text: model.user.remark ? model.user.remark : model.user.username
+                        text: model.type === "twin" ? (model.owner.remark ? model.owner.remark : model.owner.nickname) : (model.remark ? model.remark : model.name)
                         elide: Text.ElideRight
                         maximumLineCount: 1
                         font.pixelSize: 16
@@ -109,7 +111,17 @@ Item {
                     }
                     FluText {
                         id: item_text
-                        text: model.text
+                        text: {
+                            if (!model.last) return ""
+                            let text = ""
+                            if (model.type !== "twin") text = model.last.user.remark ? model.last.user.remark : model.last.user.nickname + "："
+                            switch (model.last.type) {
+                                case "text":
+                                    text += model.last.content
+                                    break
+                            }
+                            return text
+                        }
                         elide: Text.ElideRight
                         maximumLineCount: 1
                         font.pixelSize: 12
@@ -129,26 +141,26 @@ Item {
                         }
                     }
 
-                    FluText{
+                    FluText {
                         id: time_text
-                        anchors{
+                        anchors {
                             right: parent.right
                             verticalCenter: parent.verticalCenter
                             verticalCenterOffset: -10
                             rightMargin: 10
                         }
-                        text: GlobalTool.formatTime(model.time)
+                        text: model.last ? GlobalTool.formatTime(model.last.time) : ""
                         font.pixelSize: 10
                         color: item_text.color
                     }
 
-                    Rectangle{
+                    Rectangle {
                         id: unread_badge
-                        color:Qt.rgba(255/255,77/255,79/255,1)
+                        color: Qt.rgba(255 / 255, 77 / 255, 79 / 255, 1)
                         width: {
-                            if(model.unreadNum<10){
+                            if (model.unreadNum < 10) {
                                 return 20
-                            }else if(model.unreadNum<100){
+                            } else if (model.unreadNum < 100) {
                                 return 30
                             }
                             return 35
@@ -156,23 +168,23 @@ Item {
                         height: 20
                         radius: 10
                         border.width: 0
-                        anchors{
+                        anchors {
                             right: parent.right
                             verticalCenter: parent.verticalCenter
                             verticalCenterOffset: 10
                             rightMargin: 10
                         }
-                        visible: model.unreadNum!==0
-                        Text{
-                            anchors{
+                        visible: model.unreadNum !== 0
+                        Text {
+                            anchors {
                                 verticalCenter: parent.verticalCenter
                                 horizontalCenter: parent.horizontalCenter
                                 verticalCenterOffset: 1
                             }
 
-                            color: Qt.rgba(1,1,1,1)
-                            text:{
-                                if(model.unreadNum<100)
+                            color: Qt.rgba(1, 1, 1, 1)
+                            text: {
+                                if (model.unreadNum < 100)
                                     return model.unreadNum
                                 return "99+"
                             }
@@ -208,7 +220,7 @@ Item {
                     model.tapFunc()
                     layout_footer.currentIndex = _idx
                     chat_list.currentIndex = -1
-                    chatList.currentItem=null
+                    chatList.currentItem = null
                 }
                 Rectangle {
                     radius: 4
@@ -275,7 +287,7 @@ Item {
             top: parent.top
             bottom: parent.bottom
         }
-        color: FluTheme.dark ? Window.active ?  Qt.rgba(38/255,44/255,54/255,1) : Qt.rgba(39/255,39/255,39/255,1) : Qt.rgba(251/255,251/255,253/255,1)
+        color: FluTheme.dark ? Window.active ? Qt.rgba(38 / 255, 44 / 255, 54 / 255, 1) : Qt.rgba(39 / 255, 39 / 255, 39 / 255, 1) : Qt.rgba(251 / 255, 251 / 255, 253 / 255, 1)
         border.color: FluTheme.dark ? Qt.rgba(45 / 255, 45 / 255, 45 / 255, 1) : Qt.rgba(226 / 255, 230 / 255, 234 / 255, 1)
         border.width: 1
         Item {
@@ -313,7 +325,7 @@ Item {
             }
         }
 
-        Item{
+        Item {
             id: highlight_clip
             anchors.fill: chat_list
             clip: true
@@ -328,7 +340,7 @@ Item {
                     left: parent.left
                     leftMargin: 6
                 }
-                property bool enableAnimation:true
+                property bool enableAnimation: true
 
                 Behavior on y {
                     enabled: highlight_rectangle.enableAnimation & FluTheme.enableAnimation
@@ -363,51 +375,53 @@ Item {
                 bottom: layout_footer.top
             }
             model: chatList.items
-            ScrollBar.vertical: FluScrollBar {}
+            ScrollBar.vertical: FluScrollBar {
+            }
             boundsBehavior: Flickable.DragOverBounds
 
             onCurrentIndexChanged: {
-                if(chat_list.currentIndex!==-1){
-                    highlight_clip.clip=true
-                    highlight_rectangle.height=chat_item_height*0.5
-                    highlight_rectangle.y= chat_list.currentItem.y-chat_list.contentY + (chat_item_height - chat_item_height*0.5) / 2
+                if (chat_list.currentIndex !== -1) {
+                    highlight_clip.clip = true
+                    highlight_rectangle.height = chat_item_height * 0.5
+                    highlight_rectangle.y = chat_list.currentItem.y - chat_list.contentY + (chat_item_height - chat_item_height * 0.5) / 2
                 }
             }
 
-            Connections{
+            Connections {
                 // 监听数据源变化
                 target: chatList
-                function onItemsChanged(){
+
+                function onItemsChanged() {
                     updateList()
                 }
-                function updateList(){
-                    for(var i=0;i<chatList.items.length;i++){
-                        if(chatList.items[i]===chatList.currentItem){
-                            chat_list.currentIndex=i
+
+                function updateList() {
+                    for (var i = 0; i < chatList.items.length; i++) {
+                        if (chatList.items[i] === chatList.currentItem) {
+                            chat_list.currentIndex = i
                         }
                     }
 
                     // 防止列表更新时滚轮自动移动到选中项
-                    chat_list.contentY=chat_list.lastContentY
+                    chat_list.contentY = chat_list.lastContentY
                 }
             }
 
             property var lastTopItem
-            property double lastContentY:0
+            property double lastContentY: 0
             onContentYChanged: {
-                var imm=(lastContentY-chat_list.contentY!=0.0) // 高亮是否关闭动画 用于滚动跟随
-                if(chat_list.lastTopItem===chatList.items[0]){
-                    lastContentY=chat_list.contentY
-                }
-                else chat_list.lastTopItem=chatList.items[0]
+                var imm = (lastContentY - chat_list.contentY != 0.0) // 高亮是否关闭动画 用于滚动跟随
+                if (chat_list.lastTopItem === chatList.items[0]) {
+                    lastContentY = chat_list.contentY
+                } else chat_list.lastTopItem = chatList.items[0]
 
 
-                if(chat_list.currentIndex!==-1&&chat_list.currentItem){
-                    highlight_clip.clip=true
-                    if(imm)highlight_rectangle.enableAnimation=false
-                    highlight_rectangle.height=chat_item_height*0.5
-                    highlight_rectangle.y= chat_list.currentItem.y-chat_list.contentY + (chat_item_height - chat_item_height*0.5) / 2
-                    if(imm)highlight_rectangle.enableAnimation=true
+                if (chat_list.currentIndex !== -1 && chat_list.currentItem) {
+                    highlight_clip.clip = true
+                    if (imm) highlight_rectangle.enableAnimation = false
+                    highlight_rectangle.height = chat_item_height * 0.5
+                    highlight_rectangle.y = chat_list.currentItem.y - chat_list.contentY + (chat_item_height - chat_item_height * 0.5) / 2
+                    if (imm) highlight_rectangle.enableAnimation = true
                 }
             }
 
@@ -435,11 +449,11 @@ Item {
             }
 
             // 顶部分割线
-            header: Rectangle{
-                color: FluTheme.dark ? Qt.rgba(80/255,80/255,80/255,1) : Qt.rgba(210/255,210/255,210/255,1)
+            header: Rectangle {
+                color: FluTheme.dark ? Qt.rgba(80 / 255, 80 / 255, 80 / 255, 1) : Qt.rgba(210 / 255, 210 / 255, 210 / 255, 1)
                 width: layout_list.width
                 height: 1
-                z:-1
+                z: -1
             }
 
             delegate: Loader {
@@ -450,20 +464,20 @@ Item {
             }
 
             onCurrentIndexChanged: {
-                if(layout_footer.currentIndex!==-1){
-                    highlight_clip.clip=false
-                    highlight_rectangle.height=footer_item_height*0.5
-                    highlight_rectangle.y= layout_footer.y-chat_list.y+layout_footer.currentItem.y + (footer_item_height - footer_item_height*0.5) / 2
+                if (layout_footer.currentIndex !== -1) {
+                    highlight_clip.clip = false
+                    highlight_rectangle.height = footer_item_height * 0.5
+                    highlight_rectangle.y = layout_footer.y - chat_list.y + layout_footer.currentItem.y + (footer_item_height - footer_item_height * 0.5) / 2
                 }
             }
 
             onYChanged: {
-                if(layout_footer.currentIndex!==-1){
-                    highlight_clip.clip=false
-                    highlight_rectangle.enableAnimation=false
-                    highlight_rectangle.height=footer_item_height*0.5
-                    highlight_rectangle.y= layout_footer.y-chat_list.y+layout_footer.currentItem.y + (footer_item_height - footer_item_height*0.5) / 2
-                    highlight_rectangle.enableAnimation=true
+                if (layout_footer.currentIndex !== -1) {
+                    highlight_clip.clip = false
+                    highlight_rectangle.enableAnimation = false
+                    highlight_rectangle.height = footer_item_height * 0.5
+                    highlight_rectangle.y = layout_footer.y - chat_list.y + layout_footer.currentItem.y + (footer_item_height - footer_item_height * 0.5) / 2
+                    highlight_rectangle.enableAnimation = true
                 }
             }
         }

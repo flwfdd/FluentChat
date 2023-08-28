@@ -14,14 +14,14 @@ FluWindow {
     visible: true
     launchMode: FluWindowType.SingleTask
 
-    Item{
+    Item {
         anchors.fill: parent
         ChatListView {
             id: nav_view
             z: 999
             height: parent.height
             width: 300
-            chatList: store.chatList
+            chatList: store.groupList
             footerItems: FluObject {
 
                 property var navigationView
@@ -32,15 +32,15 @@ FluWindow {
                     title: "关于"
                     icon: FluentIcons.Contact
                     tapFunc: function () {
-                        loader_content.sourceComponent=Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
+                        loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
                     }
                 }
 
                 FluPaneItem {
                     title: "设置"
                     icon: FluentIcons.Settings
-                    tapFunc: function() {
-                        loader_content.sourceComponent=Qt.createComponent("qrc:/FluentChat/ui/view/ConfigView.qml")
+                    tapFunc: function () {
+                        loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ConfigView.qml")
                     }
                 }
 
@@ -62,22 +62,22 @@ FluWindow {
             }
         }
 
-        Loader{
-            id:loader_content
-            anchors{
+        Loader {
+            id: loader_content
+            anchors {
                 left: nav_view.right
                 top: parent.top
                 right: parent.right
                 bottom: parent.bottom
             }
-            Behavior on anchors.leftMargin {
-                enabled: FluTheme.enableAnimation
-                NumberAnimation{
-                    duration: 167
-                    easing.type: Easing.InExpo
-                }
-            }
             sourceComponent: Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
+        }
+
+        Connections {
+            target: store
+            function onCurrentGroupChanged() {
+                loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
+            }
         }
     }
 

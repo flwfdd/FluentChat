@@ -21,7 +21,7 @@ file(TO_CMAKE_PATH "/" PATH_SEPARATOR)
 #设置版本号
 #add_definitions(-DVERSION=0,0,1,0)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Svg HttpServer)
+find_package(Qt6 REQUIRED COMPONENTS Quick Svg HttpServer Sql)
 
 if(QT_VERSION VERSION_GREATER_EQUAL "6.3")
     qt_standard_project_setup()
@@ -110,6 +110,7 @@ target_link_libraries(FluentChat PRIVATE
     Qt6::Quick
     Qt6::Svg
     Qt6::HttpServer
+    Qt6::Sql
     fluentuiplugin
 #    FramelessHelper::Core
 #    FramelessHelper::Quick
