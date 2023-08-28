@@ -205,7 +205,7 @@ MessageModel *Database::getMessage(int id) {
     return nullptr;
 }
 
-QList<MessageModel *> Database::loadMessages(int gid, int start, int end) {
+QList<MessageModel *> Database::getMessages(int gid, int start, int end) {
     QList<MessageModel *> messages;
     QSqlQuery query;
     QString selectQuery = "SELECT * FROM `message` WHERE `gid` = " + QString::number(gid) + " AND `mid` >= " +
@@ -220,5 +220,14 @@ QList<MessageModel *> Database::loadMessages(int gid, int start, int end) {
         }
     }
     return messages;
+}
+
+void Database::saveRead(int gid, int mid) {
+    QSqlQuery query;
+    QString updateQuery = "UPDATE `group` SET `read` = " + QString::number(mid) + " WHERE `id` = " +
+                          QString::number(gid);
+    if (!query.exec(updateQuery)) {
+        qDebug() << "Failed to update group:" << query.lastError().text();
+    }
 }
 

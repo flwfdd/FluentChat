@@ -45,21 +45,6 @@ FluWindow {
                 }
 
             }
-            autoSuggestBox: FluAutoSuggestBox {
-                width: 280
-                anchors.centerIn: parent
-                iconSource: FluentIcons.Search
-                //            items: ItemsOriginal.getSearchData()
-                placeholderText: "搜索"
-                onItemClicked:
-                        (data) => {
-                    // ItemsOriginal.startPageByItem(data)
-                }
-            }
-            Component.onCompleted: {
-                //            ItemsOriginal.navigationView = nav_view
-                //            ItemsFooter.navigationView = nav_view
-            }
         }
 
         Loader {

@@ -150,7 +150,6 @@ void GroupListModel::setItems(QList<GroupModel *> items) {
         m_waitForDeleteItems = m_items;
         m_items = items;
         sortItems();
-        emit itemsChanged();
     }
 }
 
@@ -161,6 +160,7 @@ void GroupListModel::sortItems() {
         if (b->last() == nullptr)return true;
         return a->last()->time() > b->last()->time();
     });
+    emit itemsChanged();
 }
 
 GroupModel *GroupListModel::currentItem() const {
@@ -173,9 +173,3 @@ void GroupListModel::setCurrentItem(GroupModel *currentItem) {
         emit currentItemChanged();
     }
 }
-
-void GroupListModel::append(GroupModel *item) {
-    m_items.append(item);
-    emit itemsChanged();
-}
-

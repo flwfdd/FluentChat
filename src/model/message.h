@@ -4,23 +4,45 @@
 #include "model/user.h"
 #include <QObject>
 #include <QList>
+#include <QSet>
 
 class MessageModel : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(int id READ id WRITE setId NOTIFY idChanged)
-    Q_PROPERTY(QString type READ type WRITE setType NOTIFY typeChanged)
-    Q_PROPERTY(QString content READ content WRITE setContent NOTIFY contentChanged)
-    Q_PROPERTY(qint64 time READ time WRITE setTime NOTIFY timeChanged)
-    Q_PROPERTY(UserModel *user READ user WRITE setUser NOTIFY userChanged)
+
+    Q_PROPERTY(QString
+    type READ
+    type WRITE
+    setType NOTIFY
+    typeChanged)
+    Q_PROPERTY(QString
+    content READ
+    content WRITE
+    setContent NOTIFY
+    contentChanged)
+    Q_PROPERTY(qint64
+    time READ
+    time WRITE
+    setTime NOTIFY
+    timeChanged)
+    Q_PROPERTY(UserModel
+    *
+    user READ
+    user WRITE
+    setUser NOTIFY
+    userChanged)
+
     Q_PROPERTY(int gid READ gid WRITE setGid NOTIFY gidChanged)
+
     Q_PROPERTY(int mid READ mid WRITE setMid NOTIFY midChanged)
+
     Q_PROPERTY(bool recall READ recall WRITE setRecall NOTIFY recallChanged)
 
 public:
     explicit MessageModel(QObject *parent = nullptr);
 
-    MessageModel(int id, const QString &type, const QString &content, qint64 time, UserModel *user, int gid, int sn,
+    MessageModel(int id, const QString &type, const QString &content, qint64 time, UserModel *user, int gid, int mid,
                  bool recall, QObject *parent = nullptr);
 
     int id() const;
@@ -55,9 +77,9 @@ public:
 
     void setRecall(bool recall);
 
-signals:
+    signals:
 
-    void idChanged();
+            void idChanged();
 
     void typeChanged();
 
@@ -85,9 +107,12 @@ private:
 };
 
 class MessageListModel : public QObject {
-Q_OBJECT
+    Q_OBJECT
 
     Q_PROPERTY(QList<MessageModel *> items READ items WRITE setItems NOTIFY itemsChanged)
+
+    Q_PROPERTY(bool hasMore READ hasMore WRITE setHasMore NOTIFY hasMoreChanged)
+
 public:
     explicit MessageListModel(QObject *parent = nullptr);
 
@@ -95,18 +120,22 @@ public:
 
     void setItems(const QList<MessageModel *> &items);
 
-    void append(MessageModel *item);
+    bool hasMore() const;
 
-    void prepend(QList<MessageModel *> items);
+    void setHasMore(bool hasMore);
 
 signals:
 
     void itemsChanged();
 
+    void hasMoreChanged();
+
 private:
     QList<MessageModel *> m_items;
 
-    QList<MessageModel *> m_waitForDeleteItems;
+    QSet<MessageModel *> m_waitForDeleteItems;
+
+    bool m_hasMore;
 
 };
 

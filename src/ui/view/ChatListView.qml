@@ -303,11 +303,34 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
                 iconSource: FluentIcons.Search
-                //            items: ItemsOriginal.getSearchData()
+                items: {
+                    var groups = store.groupList.items
+                    var result = []
+                    for (var i = 0; i < groups.length; i++) {
+                        var group = groups[i]
+                        if (group.type === "twin") {
+                            var user = group.owner
+                            if (user.nickname.indexOf(text) !== -1 || user.remark.indexOf(text) !== -1 || user.username.indexOf(text) !== -1) {
+                                result.push({title: user.remark ? user.remark : user.nickname, key: group.id})
+                            }
+                        } else {
+                            if (group.name.indexOf(text) !== -1 || group.remark.indexOf(text) !== -1) {
+                                result.push({title: group.remark ? user.remark : group.name, key: group.id})
+                            }
+                        }
+                    }
+                    return result
+                }
                 placeholderText: "搜索"
-                onItemClicked:
-                        (data) => {
-                    // ItemsOriginal.startPageByItem(data)
+                onItemClicked: (data) => {
+                    for (var i = 0; i < store.groupList.items.length; i++) {
+                        if (store.groupList.items[i].id === data.key) {
+                            chat_list.currentIndex = i
+                            layout_footer.currentIndex = -1
+                            store.control.openGroup(store.groupList.items[i])
+                            return
+                        }
+                    }
                 }
             }
             FluIconButton {

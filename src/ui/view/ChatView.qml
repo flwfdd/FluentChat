@@ -97,7 +97,7 @@ Item {
 
             FluText {
                 id: message_text_time
-                text: Qt.formatDateTime(new Date(model.time * 1000), "yyyy-MM-dd hh:mm:ss")
+                text: Qt.formatDateTime(new Date(model.time * 1000), "yyyy-MM-dd hh:mm:ss") + " · #" + model.mid
                 color: FluTheme.dark ? FluColors.Grey120 : FluColors.Grey80
                 font.pixelSize: 10
                 anchors {
@@ -107,8 +107,6 @@ Item {
                     right: isSender ? message_text_rectangle.right : undefined
                 }
             }
-
-
         }
     }
 
@@ -137,7 +135,7 @@ Item {
                 } else {
                     s += store.currentGroup.remark ? store.currentGroup.remark : store.currentGroup.name
                     if (store.currentGroupUsers.length > 0)
-                        s += "（" + store.currentGroup.members.length + "）"
+                        s += "（" + store.currentGroupUsers.length + "）"
                 }
                 return s
             }
@@ -197,13 +195,13 @@ Item {
                 height: 60
                 color: "transparent"
                 FluTextButton {
-                    text: "加载更多"
+                    text: store.messageList.hasMore ? "加载更多！！" : "没有更多了qwq"
                     anchors.centerIn: parent
                     onClicked: {
                         message_view.loading = true
                         store.control.loadMessages()
                     }
-                    disabled: message_view.loading
+                    disabled: message_view.loading || !store.messageList.hasMore
                 }
             }
 
@@ -220,16 +218,23 @@ Item {
                 sourceComponent: message_text
             }
 
-            property bool loading: false
+            property bool loading: true
             property var lastGroupWhenBottom: null
+            property var oldSize: 0
             onModelChanged: {
-                loading = false
                 if (lastGroupWhenBottom !== store.currentGroup && message_view.contentHeight > message_view.height) {
                     lastGroupWhenBottom = store.currentGroup
-                    message_view.contentY = message_view.contentHeight - message_view.height
+                    message_view.positionViewAtEnd()
+                    oldSize = message_view.count
+                    loading = false
+                } else {
+                    if (oldSize !== message_view.count) {
+                        loading = false
+                        message_view.positionViewAtIndex(Math.max(0, message_view.count - oldSize - 1), ListView.Beginning)
+                        oldSize = message_view.count
+                    }
                 }
             }
-
         }
     }
 
@@ -290,6 +295,7 @@ Item {
                     iconSource: FluentIcons.Cut
                     iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                     onClicked: {
+                        message_view.positionViewAtEnd();
                     }
                 }
             }
@@ -347,9 +353,9 @@ Item {
         function sendMessage() {
             if (text_box.text === "") return
             showInfo(text_box.text)
-            store.control.sendMessage(0, "text", text_box.text)
+            store.control.sendMessage(store.currentGroup.id, "text", text_box.text)
             text_box.text = ""
-            message_view.contentY = message_view.contentHeight - message_view.height
+            message_view.positionViewAtEnd()
         }
     }
 

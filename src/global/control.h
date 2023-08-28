@@ -22,7 +22,7 @@ public:
 
     void initConnect();
 
-    Q_INVOKABLE void sendMessage(int gid, const QString &type, const QString &content);
+    Q_INVOKABLE void sendMessage(int gid, QString type, QString content);
 
     Q_INVOKABLE void openGroup(GroupModel *item);
 
@@ -32,14 +32,19 @@ public:
 
     void init();
 
-public slots:
+public
+    slots:
 
     void initMessageList();
+
+    void receiveMessage(MessageModel *message);
 
 private:
     Net *net;
     Database *db;
-    int pageSize = 20;
+    int pageSize = 24;
+
+    void mergeMessageList(QList<MessageModel *> list, bool front, bool replace = false);
 };
 
 

@@ -39,6 +39,9 @@ public:
 
     void getMessages(int gid, int start, int end, const std::function<void(QList<MessageModel*>)> &callback); // 加载群组消息并保存到数据库 -1为未设置
 
+    void getGroupUsers(int gid,const std::function<void(QList<UserModel*>)> &callback); // 加载群组用户
+
+
 private:
     const QString baseUrl = "http://127.0.0.1:4523/m1/3184744-0-default";
     QString cookie;

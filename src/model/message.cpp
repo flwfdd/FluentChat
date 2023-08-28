@@ -114,7 +114,8 @@ void MessageModel::setRecall(bool recall) {
 MessageListModel::MessageListModel(QObject *parent)
         : QObject{parent} {
     m_items = QList<MessageModel *>();
-    m_waitForDeleteItems = QList<MessageModel *>();
+    m_waitForDeleteItems = QSet<MessageModel *>();
+    m_hasMore = false;
 }
 
 QList<MessageModel *> MessageListModel::items() const {
@@ -123,25 +124,40 @@ QList<MessageModel *> MessageListModel::items() const {
 
 void MessageListModel::setItems(const QList<MessageModel *> &items) {
     if (m_items != items) {
+        for (auto item: items) {
+            if (m_waitForDeleteItems.contains(item)) {
+                qDebug() << "remove item from m_waitForDeleteItems";
+                m_waitForDeleteItems.remove(item);
+            }
+        }
         for (auto item: m_waitForDeleteItems) {
             delete item;
         }
-        m_waitForDeleteItems = m_items;
+        m_waitForDeleteItems.clear();
+        auto uselessSet = QSet<MessageModel *>();
+        for (auto item: m_items) {
+            uselessSet.insert(item);
+        }
+        for (auto item: items) {
+            uselessSet.remove(item);
+        }
+        for (auto item: uselessSet) {
+            m_waitForDeleteItems.insert(item);
+        }
         m_items = items;
         emit itemsChanged();
     }
 }
 
-void MessageListModel::append(MessageModel *item) {
-    m_items.append(item);
-    emit itemsChanged();
+bool MessageListModel::hasMore() const {
+    return m_hasMore;
 }
 
-void MessageListModel::prepend(QList<MessageModel *> items) {
-    for (auto it = items.end() - 1; it >= items.begin(); it--) {
-        m_items.prepend(*it);
+void MessageListModel::setHasMore(bool hasMore) {
+    if (m_hasMore != hasMore) {
+        m_hasMore = hasMore;
+        emit hasMoreChanged();
     }
-    emit itemsChanged();
 }
 
 

@@ -29,7 +29,7 @@ void Net::get(const QString &url, QMap<QString, QString> params, const std::func
     urlStr += "?" + query.toString();
     request.setUrl(QUrl(urlStr));
     request.setRawHeader("Cookie", cookie.toUtf8());
-    QNetworkReply *reply = manager->get(request);
+    QNetworkReply * reply = manager->get(request);
     connect(reply, &QNetworkReply::finished, [=]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray bytes = reply->readAll();
@@ -48,7 +48,7 @@ void Net::post(const QString &url, const QJsonDocument &json, const std::functio
     request.setUrl(QUrl(urlStr));
     request.setRawHeader("Cookie", cookie.toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QNetworkReply *reply = manager->post(request, json.toJson());
+    QNetworkReply * reply = manager->post(request, json.toJson());
     connect(reply, &QNetworkReply::finished, [=]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray bytes = reply->readAll();
@@ -137,7 +137,13 @@ void Net::loadGroups() {
             loadGroupFromJson(json, group);
             groups.append(group);
         }
+        auto messages = QList<MessageModel *>();
+        for (auto group: groups) {
+            if (group->last() != nullptr)
+                messages.append(group->last());
+        }
         // 保存到数据库
+        Database::instance()->saveMessages(messages);
         Database::instance()->saveGroups(groups);
         // 加载到groupList
         Store::instance()->groupList()->setItems(groups);
@@ -172,3 +178,18 @@ void Net::getMessages(int gid, int start, int end, const std::function<void(QLis
         callback(messages);
     });
 }
+
+void Net::getGroupUsers(int gid, const std::function<void(QList<UserModel *>)> &callback) {
+    QMap<QString, QString> params;
+    params["gid"] = QString::number(gid);
+    get("/group/users", params, [=](const QJsonDocument &doc) {
+        auto jsonList = doc.array();
+        auto users = QList<UserModel *>();
+        auto uids = QList<int>();
+        for (auto &&it: jsonList) {
+            uids.append(it.toInt());
+        }
+        callback(Control::instance()->getUsers(uids));
+    });
+}
+

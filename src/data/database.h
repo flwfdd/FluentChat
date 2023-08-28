@@ -28,7 +28,9 @@ public:
 
     MessageModel *getMessage(int id); // 加载单条消息
 
-    QList<MessageModel *> loadMessages(int gid, int start, int end); // 加载群组消息
+    QList<MessageModel *> getMessages(int gid, int start, int end); // 加载群组消息
+
+    void saveRead(int gid, int mid); // 保存已读消息
 
 private:
     QSqlDatabase db;

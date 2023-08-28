@@ -56,6 +56,13 @@ QList<UserModel *> Store::currentGroupUsers() const {
     return m_currentGroupUsers;
 }
 
+void Store::setCurrentGroupUsers(QList<UserModel *> users) {
+    if (m_currentGroupUsers != users) {
+        m_currentGroupUsers = users;
+        emit currentGroupUsersChanged();
+    }
+}
+
 Control *Store::control() const {
     return m_control;
 }

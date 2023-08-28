@@ -16,7 +16,7 @@ Q_OBJECT
     Q_PROPERTY(MessageListModel *messageList READ messageList CONSTANT) //消息列表
     Q_PROPERTY(UserModel *currentUser READ currentUser WRITE setCurrentUser NOTIFY currentUserChanged FINAL) //当前用户
     Q_PROPERTY(GroupModel *currentGroup READ currentGroup WRITE setCurrentGroup NOTIFY currentGroupChanged FINAL) //当前会话
-    Q_PROPERTY(QList<UserModel *> currentGroupUsers READ currentGroupUsers NOTIFY currentGroupUsersChanged FINAL) //当前会话的用户列表
+    Q_PROPERTY(QList<UserModel *> currentGroupUsers READ currentGroupUsers WRITE setCurrentGroupUsers NOTIFY currentGroupUsersChanged FINAL) //当前会话的用户列表
 
     Q_PROPERTY(Control *control READ control CONSTANT)
 
@@ -38,6 +38,8 @@ public:
     void setCurrentGroup(GroupModel *group);
 
     QList<UserModel *> currentGroupUsers() const;
+
+    void setCurrentGroupUsers(QList<UserModel *> users);
 
     Control *control() const;
 

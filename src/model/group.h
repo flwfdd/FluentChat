@@ -123,8 +123,6 @@ public:
 
     void setCurrentItem(GroupModel *item);
 
-    void append(GroupModel *item);
-
 signals:
 
     void itemsChanged();
