@@ -6,22 +6,42 @@ Window {
     id: app
     flags: Qt.SplashScreen
 
-    //    FluFilledButton {
-    //        width: 125
-    //        height: 35
-    //        text: qsTr("Hello FluentIM!")
-    //        anchors.centerIn: parent
-    //    }
-
     Component.onCompleted: {
         FluApp.init(app)
         FluTheme.darkMode = FluThemeType.System
         FluTheme.enableAnimation = true
         FluApp.routes = {
-            "/": "qrc:/FluentChat/ui/MainWindow.qml",
+            "/login": "qrc:/FluentChat/ui/window/LoginWindow.qml",
+            "/": "qrc:/FluentChat/ui/window/MainWindow.qml",
         }
-        FluApp.initialRoute = "/"
+        FluApp.initialRoute = "/login"
+        // FluApp.initialRoute = "/"
         //        FluApp.httpInterceptor = interceptor
+
+        //加载设置
+        var darkMode = store.getConfig("darkMode", "System")
+        if (darkMode === "Light") {
+            FluTheme.darkMode = FluThemeType.Light
+        } else if (darkMode === "Dark") {
+            FluTheme.darkMode = FluThemeType.Dark
+        } else {
+            FluTheme.darkMode = FluThemeType.System
+        }
+        var enableAnimation = store.getConfig("enableAnimation", "true")
+        FluTheme.enableAnimation = Boolean(enableAnimation)
+        var map = {
+            "Yello": FluColors.Yellow,
+            "Orange": FluColors.Orange,
+            "Red": FluColors.Red,
+            "Magenta": FluColors.Magenta,
+            "Purple": FluColors.Purple,
+            "Blue": FluColors.Blue,
+            "Teal": FluColors.Teal,
+            "Green": FluColors.Green
+        }
+        var primaryColor = store.getConfig("primaryColor", FluColors.Blue)
+        FluTheme.primaryColor = map[primaryColor] ? map[primaryColor] : FluColors.Blue
+
         FluApp.run()
     }
 }

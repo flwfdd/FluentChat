@@ -217,10 +217,10 @@ Item {
                     rightMargin: 6
                 }
                 onClicked: {
-                    model.tapFunc()
+                    model.tap()
                     layout_footer.currentIndex = _idx
                     chat_list.currentIndex = -1
-                    chatList.currentItem = null
+                    store.currentGroup = null
                 }
                 Rectangle {
                     radius: 4
@@ -340,12 +340,144 @@ Item {
                     rightMargin: 15
                     verticalCenter: parent.verticalCenter
                 }
-                iconSource: FluentIcons.Add
+                iconSource: FluentIcons.AddBold
                 iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                 onClicked: {
-                    // ItemsOriginal.startPageByItem(data)
+                    add_popup.visible = true
                 }
             }
+
+
+            Popup {
+                id: add_popup
+                modal: true
+                visible: false
+                width: 150
+                x: add_button.x - (add_popup.width - add_button.width) / 2
+                y: add_button.y + add_button.height
+                topInset: 5
+                bottomInset: 5
+                leftInset: 5
+                rightInset: 5
+                clip: true
+
+                enter: Transition {
+                    NumberAnimation {
+                        property: "height"
+                        from: 0
+                        to: 155
+                        duration: 233
+                        easing.type: Easing.InOutExpo
+                    }
+
+                    NumberAnimation {
+                        property:"opacity"
+                        from:0
+                        to: 1
+                        duration: 233
+                    }
+                }
+                exit: Transition {
+                    NumberAnimation {
+                        property: "height"
+                        from: 155
+                        to: 0
+                        duration: 233
+                        easing.type: Easing.InOutExpo
+                    }
+
+                    NumberAnimation {
+                        property:"opacity"
+                        from:1
+                        to: 0
+                        duration: 233
+                    }
+                }
+
+                background: FluArea {
+                    radius: 5
+                    border.width: 0
+                }
+
+
+                Column {
+                    id: add_popup_column
+                    width: parent.width
+                    spacing: 5
+
+                    Repeater {
+                        model: [
+                            {
+                                text: "添加好友", icon: FluentIcons.AddFriend, onClick: () => {
+                                    add_user_dialog.visible = true
+                                }
+                            },
+                            {
+                                text: "加入群聊", icon: FluentIcons.ChatBubbles, onClick: () => {
+                                    add_group_dialog.visible = true
+                                }
+                            },
+                            {
+                                text: "创建群聊", icon: FluentIcons.VideoChat, onClick: () => {
+                                    create_group_dialog.visible = true
+                                }
+                            },
+                        ]
+
+                        delegate: Item {
+                            width: add_popup_column.width
+                            height: 40
+                            Rectangle {
+                                id: add_popup_item
+                                property bool hoverd: false
+                                width: parent.width
+                                height: parent.height
+                                radius: 5
+                                color: hoverd ? (FluTheme.dark ? "#11FFFFFF" : "#11000000") : "transparent"
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        add_popup.visible = false
+                                        modelData.onClick()
+                                    }
+                                    onEntered: {
+                                        add_popup_item.hoverd = true
+                                    }
+                                    onExited: {
+                                        add_popup_item.hoverd = false
+                                    }
+                                }
+
+                                FluIcon {
+                                    id: add_popup_icon
+                                    anchors {
+                                        left: parent.left
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                    iconSource: modelData.icon
+                                    iconColor: FluTheme.primaryColor.normal
+                                    iconSize: 20
+                                }
+
+                                FluText {
+                                    id: add_popup_text
+                                    text: modelData.text
+                                    font.pixelSize: 14
+                                    anchors {
+                                        left: add_popup_icon.right
+                                        leftMargin: 10
+                                        verticalCenter: parent.verticalCenter
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
         }
 
         Item {
@@ -505,4 +637,231 @@ Item {
             }
         }
     }
+
+    Popup {
+        id: add_user_dialog
+        modal: true
+        width: 300
+        height: 250
+        visible: false
+        opacity: 0
+        anchors.centerIn: Overlay.overlay
+        background: Rectangle {
+            color: "transparent"
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 0.0;
+                to: 1.0
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 1.0;
+                to: 0.0
+            }
+        }
+
+        FluArea {
+            anchors.fill: parent
+            radius: 10
+
+            Column {
+                id: add_user_dialog_column
+                spacing: 10
+                anchors.centerIn: parent
+                width: 200
+
+                ChatAvatar {
+                    id: add_user_avatar
+                    bgColor: "#aef"
+                    avatar: "🤗"
+                    online: true
+                    size: 50
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                FluTextBox {
+                    id: add_user_textbox
+                    placeholderText: "用户名"
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                }
+
+                FluButton {
+                    text: "添加好友"
+                    width: parent.width
+                    onClicked: {
+                        if (add_user_textbox.text) {
+                            store.control.requestUser(add_user_textbox.text)
+                            add_user_dialog.visible = false
+                        } else {
+                            showError("用户名不能为空")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: add_group_dialog
+        modal: true
+        width: 300
+        height: 250
+        visible: false
+        opacity: 0
+        anchors.centerIn: Overlay.overlay
+        background: Rectangle {
+            color: "transparent"
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 0.0;
+                to: 1.0
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 1.0;
+                to: 0.0
+            }
+        }
+
+        FluArea {
+            anchors.fill: parent
+            radius: 10
+
+            Column {
+                id: add_group_dialog_column
+                spacing: 10
+                anchors.centerIn: parent
+                width: 200
+
+                ChatAvatar {
+                    id: add_group_avatar
+                    bgColor: "#aef"
+                    avatar: "🥳"
+                    online: true
+                    size: 50
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                FluTextBox {
+                    id: add_group_textbox
+                    placeholderText: "群号"
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                }
+
+                FluButton {
+                    text: "加入群组"
+                    width: parent.width
+                    onClicked: {
+                        if (add_group_textbox.text && !isNaN(add_group_textbox.text)) {
+                            store.control.requestGroup(add_group_textbox.text)
+                            add_group_dialog.visible = false
+                        } else {
+                            showError("群号不对哦")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: create_group_dialog
+        modal: true
+        width: 300
+        height: 350
+        visible: false
+        opacity: 0
+        anchors.centerIn: Overlay.overlay
+        background: Rectangle {
+            color: "transparent"
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 0.0;
+                to: 1.0
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 1.0;
+                to: 0.0
+            }
+        }
+
+        FluArea {
+            anchors.fill: parent
+            radius: 10
+
+            Column {
+                id: create_group_dialog_column
+                spacing: 10
+                anchors.centerIn: parent
+                width: 200
+
+                ChatAvatar {
+                    bgColor: create_group_color.colorValue
+                    avatar: create_group_avatar.text
+                    online: true
+                    size: 50
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                FluTextBox {
+                    id: create_group_name
+                    width: parent.width
+                    placeholderText: "群名"
+                }
+
+                FluTextBox {
+                    id: create_group_avatar
+                    width: parent.width
+                    placeholderText: "头像字（可为Emoji）"
+                }
+                FluColorPicker {
+                    id: create_group_color
+                    width: parent.width
+
+                    FluText {
+                        text: "头像色"
+                        color: "white"
+                        anchors.centerIn: parent
+                    }
+
+                    Component.onCompleted: {
+                        create_group_color.colorValue = FluTheme.primaryColor.normal
+                    }
+                }
+
+                FluButton {
+                    text: "创建群组"
+                    width: parent.width
+                    onClicked: {
+                        if (create_group_name.text) {
+                            store.control.createGroup(create_group_name.text, create_group_avatar.text, create_group_color.colorValue)
+                            create_group_dialog.visible = false
+                        } else {
+                            showError("群名不能为空")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 }

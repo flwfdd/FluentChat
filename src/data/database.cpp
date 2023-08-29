@@ -12,13 +12,12 @@
 Database::Database() {
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName("fluentchat.db");
+
     if (!db.open()) {
         qDebug() << "Error: Failed to connect database." << db.lastError();
     } else {
         qDebug() << "Succeed to connect database." << db.lastError();
     }
-
-    QSqlQuery query;
 
     // 删除所有表
 //    QString dropTableQuery = "DROP TABLE IF EXISTS `user`";
@@ -34,6 +33,7 @@ Database::Database() {
 //        qDebug() << "Failed to drop table:" << query.lastError().text();
 //    }
 
+    QSqlQuery query;
     // 创建用户表
     QString createTableQuery = "CREATE TABLE IF NOT EXISTS `user` ("
                                "`id` INTEGER NOT NULL PRIMARY KEY, "
@@ -41,20 +41,6 @@ Database::Database() {
                                "`nickname` VARCHAR(255) NOT NULL, "
                                "`color` VARCHAR(255) NOT NULL, "
                                "`avatar` VARCHAR(255) NOT NULL)";
-    if (!query.exec(createTableQuery)) {
-        qDebug() << "Failed to create table:" << query.lastError().text();
-    }
-
-    // 创建群组表
-    createTableQuery = "CREATE TABLE IF NOT EXISTS `group` ("
-                       "`id` INTEGER NOT NULL PRIMARY KEY, "
-                       "`type` VARCHAR(255) NOT NULL, "
-                       "`name` VARCHAR(255) NOT NULL, "
-                       "`avatar` VARCHAR(255) NOT NULL, "
-                       "`color` VARCHAR(255) NOT NULL, "
-                       "`owner` INTEGER NOT NULL, "
-                       "`last` INTEGER, " // 最后一条消息的id
-                       "`read` INTEGER DEFAULT 0)";
     if (!query.exec(createTableQuery)) {
         qDebug() << "Failed to create table:" << query.lastError().text();
     }
@@ -77,6 +63,24 @@ Database::Database() {
 Database *Database::instance() {
     static Database instance;
     return &instance;
+}
+
+void Database::setUserId(int userId) {
+    uid = QString::number(userId);
+    QSqlQuery query;
+    // 创建群组表
+    QString createTableQuery = "CREATE TABLE IF NOT EXISTS `group"+uid+"` ("
+                       "`id` INTEGER NOT NULL PRIMARY KEY, "
+                       "`type` VARCHAR(255) NOT NULL, "
+                       "`name` VARCHAR(255) NOT NULL, "
+                       "`avatar` VARCHAR(255) NOT NULL, "
+                       "`color` VARCHAR(255) NOT NULL, "
+                       "`owner` INTEGER NOT NULL, "
+                       "`last` INTEGER, " // 最后一条消息的id
+                       "`read` INTEGER DEFAULT 0)";
+    if (!query.exec(createTableQuery)) {
+        qDebug() << "Failed to create table:" << query.lastError().text();
+    }
 }
 
 void Database::saveUsers(QList<UserModel *> users) {
@@ -125,7 +129,7 @@ QList<UserModel *> Database::loadUsers(QList<UserModel *> users) {
 void Database::saveGroups(QList<GroupModel *> groups) {
     if (groups.isEmpty())return;
     QSqlQuery query;
-    QString insertQuery = "INSERT OR REPLACE INTO `group` (`id`, `type`, `name`, `avatar`, `color`, `owner`, `last`) VALUES ";
+    QString insertQuery = "INSERT OR REPLACE INTO `group"+uid+"` (`id`, `type`, `name`, `avatar`, `color`, `owner`, `last`) VALUES ";
     for (auto group: groups) {
         insertQuery +=
                 "(" + QString::number(group->id()) + ", '" + group->type() + "', '" + group->name() + "', '" +
@@ -141,7 +145,7 @@ void Database::saveGroups(QList<GroupModel *> groups) {
 QList<GroupModel *> Database::getGroups() {
     QList<GroupModel *> groups;
     QSqlQuery query;
-    QString selectQuery = "SELECT * FROM `group`";
+    QString selectQuery = "SELECT * FROM `group"+uid+"`";
     if (!query.exec(selectQuery)) {
         qDebug() << "Failed to load groups:" << query.lastError().text();
     } else {
@@ -224,7 +228,7 @@ QList<MessageModel *> Database::getMessages(int gid, int start, int end) {
 
 void Database::saveRead(int gid, int mid) {
     QSqlQuery query;
-    QString updateQuery = "UPDATE `group` SET `read` = " + QString::number(mid) + " WHERE `id` = " +
+    QString updateQuery = "UPDATE `group"+uid+"` SET `read` = " + QString::number(mid) + " WHERE `id` = " +
                           QString::number(gid);
     if (!query.exec(updateQuery)) {
         qDebug() << "Failed to update group:" << query.lastError().text();

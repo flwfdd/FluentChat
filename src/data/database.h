@@ -16,6 +16,8 @@ class Database {
 public:
     static Database *instance();
 
+    void setUserId(int userId);
+
     void saveUsers(QList<UserModel *> users);
 
     QList<UserModel *> loadUsers(QList<UserModel *> users); // 加载用户 返回加载成功的
@@ -34,6 +36,8 @@ public:
 
 private:
     QSqlDatabase db;
+
+    QString uid;
 };
 
 

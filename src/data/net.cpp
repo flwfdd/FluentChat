@@ -15,21 +15,28 @@ Net *Net::instance() {
     return net;
 }
 
-void Net::setCookie(const QString &cookie_) {
-    this->cookie = cookie_;
+QString Net::baseUrl() {
+    //    const QString baseUrl = "http://127.0.0.1:4523/m1/3184744-0-default";
+//    const QString baseUrl = "http://10.179.243.187:1235";
+    auto url = Store::instance()->getConfig("httpURL");
+    if (url.isEmpty()) {
+        url = "http://10.179.243.187:1235";
+        Store::instance()->setConfig("httpURL", url);
+    }
+    return url;
 }
 
 void Net::get(const QString &url, QMap<QString, QString> params, const std::function<void(QJsonDocument)> &callback) {
     QNetworkRequest request;
-    QString urlStr = baseUrl + url;
+    QString urlStr = baseUrl() + url;
     QUrlQuery query;
     for (auto it = params.begin(); it != params.end(); it++) {
         query.addQueryItem(it.key(), it.value());
     }
     urlStr += "?" + query.toString();
     request.setUrl(QUrl(urlStr));
-    request.setRawHeader("Cookie", cookie.toUtf8());
-    QNetworkReply * reply = manager->get(request);
+    request.setRawHeader("Cookie", Store::instance()->getConfig("cookie").toUtf8());
+    QNetworkReply *reply = manager->get(request);
     connect(reply, &QNetworkReply::finished, [=]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray bytes = reply->readAll();
@@ -37,6 +44,14 @@ void Net::get(const QString &url, QMap<QString, QString> params, const std::func
             callback(doc);
         } else {
             qDebug() << reply->errorString();
+            if (reply->error() == QNetworkReply::AuthenticationRequiredError) {
+                Store::instance()->setConfig("cookie", "");
+            }
+            try {
+                auto doc = QJsonDocument(QJsonDocument::fromJson(reply->readAll()));
+                auto json = doc.object();
+                if (!json["msg"].isNull())Control::instance()->showError(json["msg"].toString());
+            } catch (...) {}
         }
     });
 
@@ -44,11 +59,11 @@ void Net::get(const QString &url, QMap<QString, QString> params, const std::func
 
 void Net::post(const QString &url, const QJsonDocument &json, const std::function<void(QJsonDocument)> &callback) {
     QNetworkRequest request;
-    QString urlStr = baseUrl + url;
+    QString urlStr = baseUrl() + url;
     request.setUrl(QUrl(urlStr));
-    request.setRawHeader("Cookie", cookie.toUtf8());
+    request.setRawHeader("Cookie", Store::instance()->getConfig("cookie").toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QNetworkReply * reply = manager->post(request, json.toJson());
+    QNetworkReply *reply = manager->post(request, json.toJson());
     connect(reply, &QNetworkReply::finished, [=]() {
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray bytes = reply->readAll();
@@ -56,6 +71,14 @@ void Net::post(const QString &url, const QJsonDocument &json, const std::functio
             callback(doc);
         } else {
             qDebug() << reply->errorString();
+            if (reply->error() == QNetworkReply::AuthenticationRequiredError) {
+                Store::instance()->setConfig("cookie", "");
+            }
+            try {
+                auto doc = QJsonDocument(QJsonDocument::fromJson(reply->readAll()));
+                auto json = doc.object();
+                if (!json["msg"].isNull())Control::instance()->showError(json["msg"].toString());
+            } catch (...) {}
         }
     });
 
@@ -190,6 +213,139 @@ void Net::getGroupUsers(int gid, const std::function<void(QList<UserModel *>)> &
             uids.append(it.toInt());
         }
         callback(Control::instance()->getUsers(uids));
+    });
+}
+
+void Net::login(const QString &username, const QString &password, const std::function<void(UserModel *)> &callback) {
+    QJsonObject requestJson;
+    requestJson["username"] = username;
+    requestJson["password"] = password;
+    post("/user/login", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        auto json = doc.object();
+        auto uid = json["user"].toObject()["id"].toInt();
+        auto user = Control::instance()->getUsers(QList<int>() << uid)[0];  // 加载用户
+        Store::instance()->setConfig("cookie", json["cookie"].toString());
+        Store::instance()->setConfig("loginUid", QString::number(uid));
+        Store::instance()->setConfig("loginUsername", username);
+        callback(user);
+    });
+}
+
+void Net::resgisterUser(const QString &username, const QString &password, const QString &nickname,
+                        const QString &color, const QString &avatar, const std::function<void(UserModel *)> &callback) {
+    QJsonObject requestJson;
+    requestJson["username"] = username;
+    requestJson["password"] = password;
+    requestJson["nickname"] = nickname;
+    requestJson["color"] = color;
+    requestJson["avatar"] = avatar;
+    post("/user/register", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        auto json = doc.object();
+        auto uid = json["user"].toObject()["id"].toInt();
+        auto user = Control::instance()->getUsers(QList<int>() << uid)[0];  // 加载用户
+        Store::instance()->setConfig("cookie", json["cookie"].toString());
+        Store::instance()->setConfig("loginUid", QString::number(uid));
+        Store::instance()->setConfig("loginUsername", username);
+        callback(user);
+    });
+}
+
+void Net::requestUser(QString username, const std::function<void()> &callback) {
+    QJsonObject requestJson;
+    requestJson["username"] = username;
+    requestJson["text"] = "";
+    post("/friend/request", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        callback();
+    });
+}
+
+void Net::requestGroup(int gid, const std::function<void()> &callback) {
+    QJsonObject requestJson;
+    requestJson["gid"] = gid;
+    post("/group/request", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        callback();
+    });
+}
+
+void Net::createGroup(const QString &name, const QString &avatar, const QString &color,
+                      const std::function<void()> &callback) {
+    QJsonObject requestJson;
+    requestJson["name"] = name;
+    requestJson["avatar"] = avatar;
+    requestJson["color"] = color;
+    post("/group/new", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        callback();
+    });
+}
+
+void Net::getOnlineStatus(const QList<int> &uids, const std::function<void(QList<bool>)> &callback) {
+    QJsonObject requestJson;
+    auto uidsStr = QString();
+    for (auto uid: uids) {
+        uidsStr += QString::number(uid) + ",";
+    }
+    uidsStr = uidsStr.left(uidsStr.length() - 1);
+    requestJson["uids"] = uidsStr;
+    post("/user/onlines", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        auto jsonList = doc.array();
+        auto list = QList<bool>();
+        for (auto &&it: jsonList) {
+            list.append(it.toBool());
+        }
+        callback(list);
+    });
+}
+
+void Net::sendMessage(int gid, QString type, QString content, const std::function<void()> &callback) {
+    QJsonObject requestJson;
+    requestJson["gid"] = gid;
+    requestJson["type"] = type;
+    requestJson["content"] = content;
+    post("/message/send", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
+        callback();
+    });
+}
+
+
+Ws::Ws(QObject *parent) : QObject(parent) {
+    socket = new QWebSocket();
+
+    connect(socket, &QWebSocket::disconnected, [=]() {
+        qDebug() << "disconnected";
+    });
+}
+
+Ws *Ws::instance() {
+    static Ws *ws = new Ws();
+    return ws;
+}
+
+void Ws::init() {
+    if (Store::instance()->getConfig("cookie").isEmpty())return;
+
+    QString urlStr = Store::instance()->getConfig("wsURL");
+    if (urlStr.isEmpty()) {
+        urlStr = "ws://10.179.243.187:1234";
+        Store::instance()->setConfig("wsURL", urlStr);
+    }
+    socket->open(QUrl(urlStr));
+
+    connect(socket, &QWebSocket::textMessageReceived, [=](const QString &message) {
+        qDebug() << "receive:" << message;
+        auto messageModel = new MessageModel();
+        Net::instance()->loadMessageFromJson(QJsonDocument::fromJson(message.toUtf8()).object(), messageModel);
+        Control::instance()->receiveMessage(messageModel);
+    });
+
+    connect(socket, &QWebSocket::connected, [=]() {
+        qDebug() << "connected";
+
+        QJsonObject requestJson;
+        requestJson["cookie"] = Store::instance()->getConfig("cookie");
+        requestJson["ip"] = "";
+        requestJson["port"] = "";
+
+        socket->sendTextMessage(requestJson["cookie"].toString());
     });
 }
 

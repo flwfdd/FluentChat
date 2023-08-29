@@ -34,10 +34,7 @@ void inject(QQmlApplicationEngine & engine) {
 //                    new GroupModel(i, "twin", "私聊" + QString::number(i), "急", "#aef", "", user, nullptr, 0));
 //    }
 
-    store->setCurrentUser(Control::instance()->getUsers(QList<int>() << 1)[0]);
-    groupListModel->setItems(*groups);
-
-    Control::instance()->init();
+//    Control::instance()->init();
 
 //    auto usersList = QList<UserModel *>();
 //    for (int i = 0; i < 123; i++) {

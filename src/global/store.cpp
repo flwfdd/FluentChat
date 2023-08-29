@@ -1,3 +1,4 @@
+#include <QCoreApplication>
 #include "store.h"
 
 Store::Store(QObject *parent) : QObject(parent) {
@@ -7,7 +8,12 @@ Store::Store(QObject *parent) : QObject(parent) {
     m_currentUser = nullptr;
     m_currentGroup = nullptr;
     m_currentGroupUsers = QList<UserModel *>();
+    m_errorMsg = "";
+    m_successMsg = "";
+    m_isLogin = false;
     m_control = Control::instance();
+    m_settings = new QSettings("fluentchat.ini", QSettings::IniFormat);
+    m_config = QMap<QString, QString>();
 }
 
 Store *Store::instance() {
@@ -36,6 +42,7 @@ void Store::setCurrentUser(UserModel *user) {
         m_currentUser = user;
         emit currentUserChanged();
     }
+    if (user)Database::instance()->setUserId(user->id());
 }
 
 GroupModel *Store::currentGroup() const {
@@ -63,8 +70,47 @@ void Store::setCurrentGroupUsers(QList<UserModel *> users) {
     }
 }
 
+QString Store::successMsg() const {
+    return m_successMsg;
+}
+
+void Store::setSuccessMsg(const QString &msg) {
+    m_successMsg = msg;
+    emit successMsgChanged();
+}
+
+QString Store::errorMsg() const {
+    return m_errorMsg;
+}
+
+void Store::setErrorMsg(const QString &msg) {
+    m_errorMsg = msg;
+    emit errorMsgChanged();
+}
+
+bool Store::isLogin() const {
+    return m_currentUser != nullptr;
+}
+
+void Store::setIsLogin(bool isLogin) {
+    if (isLogin != m_isLogin) {
+        m_isLogin = isLogin;
+    }
+    emit isLoginChanged();
+}
+
 Control *Store::control() const {
     return m_control;
+}
+
+void Store::setConfig(const QString &key, const QString &value) {
+    m_config.insert(key, value);
+    m_settings->setValue(key, value);
+}
+
+QString Store::getConfig(const QString &key, const QString &defaultValue) {
+    if (m_config.contains(key))return m_config.value(key);
+    return m_settings->value(key, defaultValue).toString();
 }
 
 

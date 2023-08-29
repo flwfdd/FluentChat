@@ -9,6 +9,9 @@
 Control::Control(QObject *parent) : QObject(parent) {
     net = Net::instance();
     db = Database::instance();
+    auto onlineStatusTimer = new QTimer(this);
+    connect(onlineStatusTimer, &QTimer::timeout, this, &Control::updateOnlineStatus);
+    onlineStatusTimer->start(onlineStatusTimerInterval);
 }
 
 Control *Control::instance() {
@@ -23,13 +26,16 @@ void Control::initConnect() {
 void Control::sendMessage(int gid, QString type, QString content) {
     if (content.isEmpty())
         return;
-    auto group = Store::instance()->currentGroup();
-    if (group == nullptr || group->id() != gid)return;
-    auto mid = group->last() ? group->last()->mid() + 1 : 1;
-    auto item = new MessageModel{int(gid * 1000 + mid), type, content,
-                                 QDateTime::currentMSecsSinceEpoch() / 1000,
-                                 Store::instance()->currentUser(), gid, mid, false};
-    receiveMessage(item);
+    Net::instance()->sendMessage(gid, type, content, [=]() {
+        showSuccess("发送成功");
+    });
+//    auto group = Store::instance()->currentGroup();
+//    if (group == nullptr || group->id() != gid)return;
+//    auto mid = group->last() ? group->last()->mid() + 1 : 1;
+//    auto item = new MessageModel{int(gid * 1000 + mid), type, content,
+//                                 QDateTime::currentMSecsSinceEpoch() / 1000,
+//                                 Store::instance()->currentUser(), gid, mid, false};
+//    receiveMessage(item);
 }
 
 void Control::receiveMessage(MessageModel *message) {
@@ -128,6 +134,11 @@ QList<UserModel *> Control::getUsers(QList<int> ids) {
         } else userList.append(users->value(id));
     }
 
+    // 加入在线检查队列
+    for (auto user: userList) {
+        checkOnlineUids.insert(user);
+    }
+
     // 从数据库加载
     auto loaded = db->loadUsers(unloaded);
     for (auto user: loaded) {
@@ -146,12 +157,16 @@ QList<UserModel *> Control::getUsers(QList<int> ids) {
 }
 
 void Control::init() {
-    if (Store::instance()->currentUser() == nullptr)return;
-    auto db = Database::instance();
-    auto net = Net::instance();
-    auto groupListModel = Store::instance()->groupList();
-    groupListModel->setItems(db->getGroups());
-//    net->loadGroups();
+    Ws::instance()->init();
+    if (Store::instance()->currentUser() == nullptr) {
+        QString uid = Store::instance()->getConfig("loginUid");
+        if (uid.isEmpty())return;
+        Store::instance()->setCurrentUser(getUsers(QList<int>() << uid.toInt()).first());
+    }
+    Store::instance()->groupList()->setItems(db->getGroups());
+    Net::instance()->loadGroups();
+
+    updateOnlineStatus();
 }
 
 void Control::loadMessages() {
@@ -172,5 +187,78 @@ void Control::loadMessages() {
         // 加载到messageList
         mergeMessageList(list, true);
     }
+}
+
+void Control::showSuccess(const QString &message) {
+    Store::instance()->setSuccessMsg(message);
+}
+
+void Control::showError(const QString &message) {
+    Store::instance()->setErrorMsg(message);
+}
+
+void Control::login(const QString &username, const QString &password) {
+    Net::instance()->login(username, password, [=](UserModel *user) {
+        Store::instance()->setCurrentUser(user);
+        init();
+        showSuccess("登录成功");
+        Store::instance()->setIsLogin(true);
+    });
+}
+
+void Control::registerUser(const QString &username, const QString &password, const QString &nickname,
+                           const QString &color, const QString &avatar) {
+    Net::instance()->resgisterUser(username, password, nickname, color, avatar, [=](UserModel *user) {
+        Store::instance()->setCurrentUser(user);
+        init();
+        showSuccess("注册成功");
+        Store::instance()->setIsLogin(true);
+    });
+}
+
+void Control::requestUser(QString username) {
+    Net::instance()->requestUser(username, [=]() {
+        Net::instance()->loadGroups();
+        showSuccess("添加成功");
+    });
+}
+
+void Control::requestGroup(int gid) {
+    Net::instance()->requestGroup(gid, [=]() {
+        Net::instance()->loadGroups();
+        showSuccess("加入成功");
+    });
+}
+
+void Control::createGroup(const QString &name, const QString &avatar, const QString &color) {
+    Net::instance()->createGroup(name, avatar, color, [=]() {
+        Net::instance()->loadGroups();
+        showSuccess("创建成功");
+    });
+}
+
+void Control::updateOnlineStatus() {
+    // 加入群组列表中的
+    auto groupList=Store::instance()->groupList();
+    for (auto group:groupList->items()) {
+        if(group->type()!="twin")continue;
+        auto users=group->owner();
+        if(users==nullptr)continue;
+        checkOnlineUids.insert(users);
+    }
+    if (checkOnlineUids.empty())return;
+    auto uids = QList<int>();
+    for (auto user: checkOnlineUids) {
+        uids.append(user->id());
+    }
+    checkOnlineUids.clear();
+    Net::instance()->getOnlineStatus(uids, [=](QList<bool> status) {
+        if (uids.size() != status.size())return;
+        for (int i = 0; i < uids.size(); i++) {
+            auto user = Store::instance()->users()->value(uids[i]);
+            if (user == nullptr)continue;
+            user->setOnline(status[i]);
+        }
+    });
 }
 

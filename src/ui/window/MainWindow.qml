@@ -8,9 +8,9 @@ FluWindow {
     id: page_front
     title: "FluentChat"
     width: 1000
-    height: 640
-    minimumWidth: 520
-    minimumHeight: 200
+    height: 618
+    minimumWidth: 666
+    minimumHeight: 424
     visible: true
     launchMode: FluWindowType.SingleTask
 
@@ -31,7 +31,7 @@ FluWindow {
                 FluPaneItem {
                     title: "关于"
                     icon: FluentIcons.Contact
-                    tapFunc: function () {
+                    onTap: {
                         loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
                     }
                 }
@@ -39,7 +39,7 @@ FluWindow {
                 FluPaneItem {
                     title: "设置"
                     icon: FluentIcons.Settings
-                    tapFunc: function () {
+                    onTap: {
                         loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ConfigView.qml")
                     }
                 }
@@ -60,11 +60,34 @@ FluWindow {
 
         Connections {
             target: store
+            property bool lastIsChatView : false
+
             function onCurrentGroupChanged() {
-                loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
+                if (store.currentGroup !== null) {
+                    if(!lastIsChatView){
+                        lastIsChatView = true
+                        loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
+                    }
+
+                } else {
+                    lastIsChatView = false
+                }
+
             }
         }
     }
 
+
+    Connections {
+        target: store
+
+        function onErrorMsgChanged() {
+            showError(store.errorMsg)
+        }
+
+        function onSuccessMsgChanged() {
+            showSuccess(store.successMsg)
+        }
+    }
 }
 
