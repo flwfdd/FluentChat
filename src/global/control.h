@@ -26,6 +26,10 @@ public:
 
     Q_INVOKABLE void sendMessage(int gid, QString type, QString content);
 
+    Q_INVOKABLE void sendImage(int gid, QString filePath);
+
+    Q_INVOKABLE void sendFile(int gid, QString filePath, QString fileName);
+
     Q_INVOKABLE void openGroup(GroupModel *item);
 
     Q_INVOKABLE void loadMessages();
@@ -44,13 +48,16 @@ public:
 
     Q_INVOKABLE void createGroup(const QString &name, const QString &avatar, const QString &color);
 
+    Q_INVOKABLE void setGroupRemark(QString remark);
+
+    Q_INVOKABLE void saveBase64File(QString filePath,QString base64);
+
     QList<UserModel *> getUsers(QList<int> ids); // 加载用户到Users Map 返回的可能会延迟加载
 
     void showSuccess(const QString &message);
 
     void showError(const QString &message);
 
-    Q_INVOKABLE void uploadFile(QString path, QJSValue callable);
 
 
 public

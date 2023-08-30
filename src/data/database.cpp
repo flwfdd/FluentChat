@@ -77,7 +77,8 @@ void Database::setUserId(int userId) {
                                                                            "`color` VARCHAR(255) NOT NULL, "
                                                                            "`owner` INTEGER NOT NULL, "
                                                                            "`last` INTEGER, " // 最后一条消息的id
-                                                                           "`read` INTEGER DEFAULT 0)";
+                                                                           "`read` INTEGER DEFAULT 0,"
+                                                                           "`remark` VARCHAR(255) NOT NULL)";
     if (!query.exec(createTableQuery)) {
         qDebug() << "Failed to create table:" << query.lastError().text();
     }
@@ -130,13 +131,13 @@ void Database::saveGroups(QList<GroupModel *> groups) {
     if (groups.isEmpty())return;
     QSqlQuery query;
     QString insertQuery = "INSERT OR REPLACE INTO `group" + uid +
-                          "` (`id`, `type`, `name`, `avatar`, `color`, `owner`, `last`, `read`) VALUES ";
+                          "` (`id`, `type`, `name`, `avatar`, `color`, `owner`, `last`, `read`, `remark`) VALUES ";
     for (auto group: groups) {
         insertQuery +=
                 "(" + QString::number(group->id()) + ", '" + group->type() + "', '" + group->name() + "', '" +
                 group->avatar() + "', '" + group->color() + "', " + QString::number(group->owner()->id()) + ", " +
                 (group->last() ? QString::number(group->last()->id()) : "NULL") + ", " +
-                QString::number(group->read()) + "),";
+                QString::number(group->read()) + ", '" + group->remark() + "'),";
     }
     insertQuery = insertQuery.left(insertQuery.length() - 1);
     if (!query.exec(insertQuery)) {
@@ -162,6 +163,7 @@ QList<GroupModel *> Database::getGroups() {
             auto message_id = query.value(6).toInt();
             group->setLast(getMessage(message_id));
             group->setRead(query.value(7).toInt());
+            group->setRemark(query.value(8).toString());
             groups.append(group);
         }
     }
@@ -171,17 +173,22 @@ QList<GroupModel *> Database::getGroups() {
 void Database::saveMessages(QList<MessageModel *> messages) {
     if (messages.isEmpty())return;
     QSqlQuery query;
-    QString insertQuery = "INSERT OR REPLACE INTO `message` (`id`, `type`, `content`, `time`, `uid`, `gid`, `mid`, `recall`) VALUES ";
+    QString insertQuery = "INSERT OR REPLACE INTO `message` (`id`, `type`, `content`, `time`, `uid`, `gid`, `mid`, `recall`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    query.prepare(insertQuery);
     for (auto message: messages) {
-        insertQuery +=
-                "(" + QString::number(message->id()) + ", '" + message->type() + "', '" + message->content() + "', " +
-                QString::number(message->time()) + ", " + QString::number(message->user()->id()) + ", " +
-                QString::number(message->gid()) + ", " + QString::number(message->mid()) + ", " +
-                QString::number(message->recall()) + "),";
-    }
-    insertQuery = insertQuery.left(insertQuery.length() - 1);
-    if (!query.exec(insertQuery)) {
-        qDebug() << "Failed to insert messages:" << query.lastError().text();
+        query.prepare(insertQuery);
+        query.addBindValue(message->id());
+        query.addBindValue(message->type());
+        query.addBindValue(message->content());
+        query.addBindValue(message->time());
+        query.addBindValue(message->user()->id());
+        query.addBindValue(message->gid());
+        query.addBindValue(message->mid());
+        query.addBindValue(message->recall());
+        if (!query.exec()) {
+            qDebug() << "Failed to insert message:" << query.lastError().text();
+            return;
+        }
     }
 }
 

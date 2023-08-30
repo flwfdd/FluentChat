@@ -106,7 +106,7 @@ MessageModel *GroupModel::last() const {
 
 void GroupModel::setLast(MessageModel *last) {
     if (m_last != last) {
-        delete m_waitForDeleteLast;
+//        delete m_waitForDeleteLast;
         m_waitForDeleteLast = m_last;
         m_last = last;
         emit lastChanged();
@@ -145,7 +145,7 @@ QList<GroupModel *> GroupListModel::items() const {
 void GroupListModel::setItems(QList<GroupModel *> items) {
     if (m_items != items) {
         for (auto item: m_waitForDeleteItems) {
-            delete item;
+//            delete item;
         }
         m_waitForDeleteItems = m_items;
         m_items = items;

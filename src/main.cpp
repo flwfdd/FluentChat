@@ -36,7 +36,6 @@ void inject(QQmlApplicationEngine &engine) {
 
 
 //    Control::instance()->init();
-//    Net::instance()->uploadFile("D:/code/FluentChat/bin/debug/test.txt", ".txt");
 
 //    auto usersList = QList<UserModel *>();
 //    for (int i = 0; i < 123; i++) {

@@ -131,7 +131,7 @@ void MessageListModel::setItems(const QList<MessageModel *> &items) {
             }
         }
         for (auto item: m_waitForDeleteItems) {
-            delete item;
+//            delete item;
         }
         m_waitForDeleteItems.clear();
         auto uselessSet = QSet<MessageModel *>();

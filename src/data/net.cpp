@@ -322,92 +322,12 @@ void Net::sendMessage(int gid, QString type, QString content, const std::functio
 }
 
 
-void Net::uploadFile(QString path, QString suffix) {
-//    QThreadPool::globalInstance()->start([=]() {
-
-    QNetworkRequest request;
-    QString urlStr = baseUrl() + "/upload";
-    qDebug() << "uploading" << path << suffix << urlStr;
-    request.setUrl(QUrl(urlStr));
-//        request.setRawHeader("Cookie", Store::instance()->getConfig("cookie").toUtf8());
-
-    // 加入文件
-    auto *file = new QFile(path);
-    file->open(QIODevice::ReadOnly);
-//    if (!file->open(QIODevice::ReadOnly)) {
-//        callable.property("onError").call();
-//        return;
-//    }
-
-
-    auto multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    // 添加文件参数
-    QHttpPart filePart;
-    filePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\""));
-    filePart.setBodyDevice(file);
-    file->setParent(multiPart);
-    multiPart->append(filePart);
-
-    // 添加字符串参数
-    QHttpPart suffixPart;
-    suffixPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"suffix\""));
-    suffixPart.setBody(suffix.toUtf8());
-    multiPart->append(suffixPart);
-
-    QNetworkAccessManager manager_;
-    QNetworkReply *reply = manager_.post(request, multiPart);
-    multiPart->setParent(reply);
-
-    qDebug() << "uploading";
-
-
-//        QNetworkReply *reply = manager_.post(request, &multiPart);
-//        qDebug() << "uploading2";
-//    _cache.append(reply);
-//        connect(&manager_, &QNetworkAccessManager::finished, this, [&loop](QNetworkReply *reply) {
-//            qDebug() << "uploading4";
-//            loop.quit();
-//        });
-    connect(reply, &QNetworkReply::metaDataChanged, [=]() {
-        qDebug() << "metaDataChanged";
-    });
-    connect(reply, &QNetworkReply::finished, [=]() {
-        qDebug() << "uploading3";
-        QString result = QString::fromUtf8(reply->readAll());
-        qDebug() << result;
-    });
-    connect(reply, &QNetworkReply::readyRead, [=]() {
-        QByteArray array = reply->readAll();
-        qDebug() << array;
-        //file->close();
-    });
-    connect(reply, &QNetworkReply::uploadProgress, this, [=](qint64 bytesSent, qint64 bytesTotal) {
-//        QJSValueList args;
-//        args << static_cast<double>(bytesSent);
-//        args << static_cast<double>(bytesTotal);
-//        QJSValue onProgress = callable.property("onProgress");
-//        onProgress.call(args);
-        qDebug() << bytesSent << bytesTotal;
-    });
-//    loop.exec();
-//    QString result = QString::fromUtf8(reply->readAll());
-//    bool isSuccess = reply->error() == QNetworkReply::NoError;
-//    _cache.removeOne(reply);
-//    reply->deleteLater();
-//    if (isSuccess) {
-//        callable.property("onSuccess").call(QJSValueList()<<result);
-//    }else{
-//        callable.property("onError").call();
-//    }
-//    });
-}
-
 Ws::Ws(QObject *parent) : QObject(parent) {
     socket = new QWebSocket();
 
     connect(socket, &QWebSocket::disconnected, [=]() {
         qDebug() << "disconnected";
+        Control::instance()->showError("连接服务器失败");
     });
 }
 

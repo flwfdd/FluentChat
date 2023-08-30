@@ -29,14 +29,6 @@ FluWindow {
                 id: footer_items
 
                 FluPaneItem {
-                    title: "关于"
-                    icon: FluentIcons.Contact
-                    onTap: {
-                        loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
-                    }
-                }
-
-                FluPaneItem {
                     title: "设置"
                     icon: FluentIcons.Settings
                     onTap: {
@@ -44,6 +36,13 @@ FluWindow {
                     }
                 }
 
+                FluPaneItem {
+                    title: "关于"
+                    icon: FluentIcons.Contact
+                    onTap: {
+                        loader_content.sourceComponent = Qt.createComponent("qrc:/FluentChat/ui/view/AboutView.qml")
+                    }
+                }
             }
         }
 
@@ -55,7 +54,7 @@ FluWindow {
                 right: parent.right
                 bottom: parent.bottom
             }
-            sourceComponent: Qt.createComponent("qrc:/FluentChat/ui/view/ChatView.qml")
+            sourceComponent: Qt.createComponent("qrc:/FluentChat/ui/view/AboutView.qml")
         }
 
         Connections {

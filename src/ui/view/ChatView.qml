@@ -151,31 +151,6 @@ FluPage {
                 }
             }
 
-            // Rectangle {
-            //     id: message_image_rectangle
-            //     width: {
-            //         let max_width = message_text_item.width * 0.75
-            //         let need_width = message_text_metrics.width + 20
-            //         return need_width > max_width ? max_width : need_width
-            //     }
-            //     height: message_text_content.contentHeight + 20
-            //     anchors {
-            //         top: message_text_name.bottom
-            //         topMargin: 5
-            //         left: isSender ? undefined : message_text_avatar.right
-            //         leftMargin: 10
-            //         right: isSender ? message_text_avatar.left : undefined
-            //         rightMargin: 10
-            //     }
-            //     radius: 10
-            //     color: {
-            //         if (isSender)
-            //             return FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
-            //         return FluTheme.dark ? Window.active ? Qt.rgba(38 / 255, 44 / 255, 54 / 255, 1) : Qt.rgba(39 / 255, 39 / 255, 39 / 255, 1) : Qt.rgba(251 / 255, 251 / 255, 253 / 255, 1)
-            //     }
-            // }
-
-
             FluRectangle {
                 id: message_image_rectangle
                 width: 200
@@ -229,6 +204,131 @@ FluPage {
         }
     }
 
+    Component {
+        id: message_file
+        Item {
+            id: message_file_item
+            width: message_view.width - 10 //避开滚动条
+            height: {
+                return Math.max(message_file_avatar.height, message_file_rectangle.height + message_file_name.height) + message_file_time.height + 10
+            }
+            clip: true
+
+            ChatAvatar {
+                id: message_file_avatar
+                bgColor: model.user.color
+                avatar: model.user.avatar
+                online: model.user.online
+                size: 35
+                anchors {
+                    top: parent.top
+                    left: isSender ? undefined : parent.left
+                    right: isSender ? parent.right : undefined
+                }
+            }
+
+            FluText {
+                id: message_file_name
+                text: model.user.remark ? model.user.remark : model.user.nickname
+                maximumLineCount: 1
+                horizontalAlignment: isSender ? Text.AlignRight : Text.AlignLeft
+                elide: Text.ElideRight
+                color: FluTheme.dark ? FluColors.Grey100 : FluColors.Grey100
+                font.pixelSize: 12
+                anchors {
+                    top: parent.top
+                    left: isSender ? message_file_item.left : message_file_avatar.right
+                    leftMargin: 10
+                    right: isSender ? message_file_avatar.left : message_file_item.right
+                    rightMargin: 10
+                }
+            }
+
+            FluArea {
+                id: message_file_rectangle
+                width: 250
+                height: 100
+                radius: 10
+                anchors {
+                    top: message_file_name.bottom
+                    topMargin: 5
+                    left: isSender ? undefined : message_file_avatar.right
+                    leftMargin: 10
+                    right: isSender ? message_file_avatar.left : undefined
+                    rightMargin: 10
+                }
+
+
+                FluIcon {
+                    id: message_file_icon
+                    iconSource: FluentIcons.Attach
+                    iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                    iconSize: 42
+                    anchors {
+                        left: parent.left
+                        leftMargin: 15
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                FluText {
+                    id: message_file_text
+                    color: FluTheme.dark ? FluColors.White : FluColors.Black
+                    font.pixelSize: 14
+                    maximumLineCount: 3
+                    wrapMode: Text.WrapAnywhere
+                    elide: Text.ElideRight
+                    width: parent.width
+
+                    anchors {
+                        left: message_file_icon.right
+                        leftMargin: 10
+                        right: message_file_button.left
+                        rightMargin: 5
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                FluTextButton {
+                    id: message_file_button
+                    text: "下载"
+                    onClicked: {
+                        var jsonString = model.content
+                        var json = JSON.parse(jsonString)
+                        file_download_dialog.fileName = json.name
+                        file_download_dialog.fileData = json.data
+                        file_download_dialog.open()
+                    }
+                    anchors {
+                        right: parent.right
+                        rightMargin: 10
+                        bottom: parent.bottom
+                        bottomMargin: 10
+                    }
+                }
+            }
+
+            FluText {
+                id: message_file_time
+                text: Qt.formatDateTime(new Date(model.time * 1000), "yyyy-MM-dd hh:mm:ss") + " · #" + model.mid
+                color: FluTheme.dark ? FluColors.Grey120 : FluColors.Grey80
+                font.pixelSize: 10
+                anchors {
+                    top: message_file_rectangle.bottom
+                    topMargin: 5
+                    left: isSender ? undefined : message_file_rectangle.left
+                    right: isSender ? message_file_rectangle.right : undefined
+                }
+            }
+
+            Component.onCompleted: {
+                var jsonString = model.content
+                var json = JSON.parse(jsonString)
+                message_file_text.text = json.name
+            }
+        }
+    }
+
     Rectangle {
         id: header
         width: parent.width
@@ -246,11 +346,12 @@ FluPage {
         }
 
         FluText {
+            id: header_title
             text: {
                 if (!store.currentGroup) return ""
                 let s = ""
                 if (store.currentGroup.type === "twin") {
-                    s += store.currentGroup.owner.nickname
+                    s += store.currentGroup.remark ? store.currentGroup.remark : store.currentGroup.owner.nickname
                 } else {
                     s += store.currentGroup.remark ? store.currentGroup.remark : store.currentGroup.name
                     if (store.currentGroupUsers.length > 0)
@@ -264,24 +365,43 @@ FluPage {
             anchors {
                 left: parent.left
                 leftMargin: 20
-                right: header_icon.left
+                right: header_button_group.left
                 verticalCenter: parent.verticalCenter
             }
         }
 
-        FluIconButton {
-            id: header_icon
-            iconSource: FluentIcons.Info
-            iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+        Row {
+            id: header_button_group
+            spacing: 5
             anchors {
                 right: parent.right
                 rightMargin: 20
                 verticalCenter: parent.verticalCenter
             }
-            onClicked: {
-                info_popup.visible = true
+            FluIconButton {
+                id: header_edit_button
+                text: "修改备注"
+                iconSource: FluentIcons.Edit
+                iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                onClicked: {
+                    if (!store.currentGroup) return
+                    edit_remark_textbox.text = store.currentGroup.remark
+                    edit_remark_dialog.visible = true
+                }
             }
+
+            FluIconButton {
+                id: header_info_button
+                text: "关于聊天"
+                iconSource: FluentIcons.Info
+                iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                onClicked: {
+                    info_popup.visible = true
+                }
+            }
+
         }
+
 
         Popup {
             id: info_popup
@@ -496,6 +616,9 @@ FluPage {
                     if (model.type === "image") {
                         return message_image
                     }
+                    if (model.type === "file") {
+                        return message_file
+                    }
                 }
             }
 
@@ -562,6 +685,7 @@ FluPage {
             Row {
                 spacing: 5
                 FluIconButton {
+                    text: input_area.editExpand ? "还原输入框" : "扩展输入框"
                     iconSource: input_area.editExpand ? FluentIcons.ChevronDown : FluentIcons.ChevronUp
                     iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                     onClicked: {
@@ -569,28 +693,39 @@ FluPage {
                     }
                 }
 
+                // 上传图片
                 FluIconButton {
+                    text: "发送图片"
+                    iconSource: FluentIcons.Photo
+                    iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                    onClicked: {
+                        image_upload_dialog.open()
+                    }
+                }
+
+                FluIconButton {
+                    text: "发送文件"
+                    iconSource: FluentIcons.Attach
+                    iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                    onClicked: {
+                        file_upload_dialog.open()
+                    }
+                }
+
+                FluIconButton {
+                    text: "P2P文件同传"
                     iconSource: FluentIcons.Folder
                     iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                     onClicked: {
                     }
                 }
 
-                // 上传图片
                 FluIconButton {
-                    iconSource: FluentIcons.Photo
-                    iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
-                    onClicked: {
-                        image_upload_dialog.callback=image_upload_dialog.seleteFileCallback
-                        image_upload_dialog.open()
-                    }
-                }
-
-                FluIconButton {
+                    text: "截屏"
                     iconSource: FluentIcons.Cut
                     iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                     onClicked: {
-                        message_view.positionViewAtEnd();
+                        screenshot.open()
                     }
                 }
             }
@@ -713,35 +848,148 @@ FluPage {
     // 图片上传
     FileDialog {
         id: image_upload_dialog
-        property var callback: null
-        onAccepted: {
-            var path=FluTools.toLocalPath(selectedFile)
-            if(callback)callback(path)
-        }
+        nameFilters: ["Images (*.png *.jpg *.jpeg)"]
+        fileMode: FileDialog.OpenFile
 
-        function seleteFileCallback(file){
-            console.log(file)
-            var callable = {}
-            callable.onStart = function(){
-                showSuccess("开始上传")
-            }
-            callable.onSuccess = function(result){
-                showSuccess("上传成功")
-                console.debug(result)
-            }
-            callable.onError = function(){
-                showError("上传失败")
-            }
-            callable.onProgress = function(sent,total){
-                var locale = Qt.locale()
-                var precent = (sent/total * 100).toFixed(0) + "%"
-                var text = "上传中..."+precent
-                console.log(text)
-                text =  "%1/%2".arg(locale.formattedDataSize(sent)).arg(locale.formattedDataSize(total))
-                console.log(text)
-            }
-            store.control.uploadFile(file,callable)
+        onAccepted: {
+            var file = FluTools.toLocalPath(selectedFile)
+            store.control.sendImage(store.currentGroup.id, file)
         }
     }
 
+    // 截图
+    FluScreenshot {
+        id: screenshot
+        captrueMode: FluScreenshotType.File
+        saveFolder: FluTools.getApplicationDirPath() + "/screenshot"
+        onCaptrueCompleted: (captrue) => {
+            var file = FluTools.toLocalPath(captrue)
+            store.control.sendImage(store.currentGroup.id, file)
+        }
+    }
+
+    // 修改备注
+    Popup {
+        id: edit_remark_dialog
+        modal: true
+        width: 300
+        height: 200
+        visible: false
+        opacity: 0
+        anchors.centerIn: Overlay.overlay
+        background: Rectangle {
+            color: "transparent"
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 0.0;
+                to: 1.0
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 1.0;
+                to: 0.0
+            }
+        }
+
+        FluArea {
+            anchors.fill: parent
+            radius: 10
+
+            Column {
+                id: edit_remark_dialog_column
+                spacing: 10
+                anchors.centerIn: parent
+                width: 200
+
+                FluText {
+                    text: "修改备注"
+                    color: FluTheme.dark ? FluColors.White : FluColors.Black
+                    font.pixelSize: 20
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                FluTextBox {
+                    id: edit_remark_textbox
+                    placeholderText: "备注"
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
+                }
+
+                FluButton {
+                    text: "确认修改"
+                    width: parent.width
+                    onClicked: {
+                        store.control.setGroupRemark(edit_remark_textbox.text)
+                        edit_remark_dialog.visible = false
+                        showSuccess("修改成功")
+                    }
+                }
+            }
+        }
+    }
+
+    // 文件上传
+    FileDialog {
+        id: file_upload_dialog
+        property var callback: null
+        fileMode: FileDialog.OpenFile
+
+        onAccepted: {
+            var filePath = FluTools.toLocalPath(selectedFile)
+            var fileName = FluTools.getFileNameByUrl(selectedFile)
+            store.control.sendFile(store.currentGroup.id, filePath, fileName)
+        }
+    }
+
+    // 文件下载
+    FolderDialog {
+        id: file_download_dialog
+        property var fileName
+        property var fileData
+        onAccepted: {
+            if (!fileName || !fileData) return
+            var folderPath = FluTools.toLocalPath(selectedFolder)
+            var filePath = folderPath + "/" + fileName
+            store.control.saveBase64File(filePath, fileData)
+        }
+    }
+
+    FluTour {
+        id: tour
+        steps: [
+            {
+                title: "聊天名称",
+                description: "这里展示了聊天对象或群名，如果有备注将会显示备注。群聊还会有括号显示群人数。",
+                target: () => header_title
+            },
+            {title: "编辑备注", description: "点击这里可以编辑聊天备注。", target: () => header_edit_button},
+            {
+                title: "更多信息",
+                description: "点击这里可以查看群聊详情，其中展示了群聊信息、每个成员的昵称、用户名和在线情况等。",
+                target: () => header_info_button
+            }
+        ]
+    }
+
+    Component.onCompleted: {
+        if (!store.getConfig("chat_tour")) {
+            store.setConfig("chat_tour", "done")
+            tour_delay.start()
+        } else tour_delay.start()
+    }
+
+    Timer {
+        id: tour_delay
+        interval: 500
+        repeat: false
+        onTriggered: {
+            tour.open()
+        }
+    }
 }

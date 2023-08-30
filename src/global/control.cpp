@@ -5,6 +5,7 @@
 #include "control.h"
 #include "global/store.h"
 #include <QDateTime>
+#include <QFile>
 
 Control::Control(QObject *parent) : QObject(parent) {
     net = Net::instance();
@@ -29,6 +30,7 @@ void Control::sendMessage(int gid, QString type, QString content) {
     Net::instance()->sendMessage(gid, type, content, [=]() {
         showSuccess("发送成功");
     });
+
 //    auto group = Store::instance()->currentGroup();
 //    if (group == nullptr || group->id() != gid)return;
 //    auto mid = group->last() ? group->last()->mid() + 1 : 1;
@@ -40,14 +42,25 @@ void Control::sendMessage(int gid, QString type, QString content) {
 
 void Control::receiveMessage(MessageModel *message) {
     Database::instance()->saveMessages(QList < MessageModel * > () << message);
-    auto group = Store::instance()->currentGroup();
-    if (group == nullptr || group->id() != message->gid())return;
-    auto *message2 = new MessageModel(message->id(), message->type(), message->content(), message->time(),
-                                      message->user(), message->gid(), message->mid(), message->recall());
-    group->setLast(message2);
-    Store::instance()->groupList()->sortItems();
-    Database::instance()->saveGroups(QList < GroupModel * > () << group);
-    mergeMessageList(QList < MessageModel * > () << message, false, false);
+    auto groups = Store::instance()->groupList()->items();
+    GroupModel *group = nullptr;
+    for (auto g: groups) {
+        if (g->id() == message->gid()) {
+            group = g;
+            break;
+        }
+    }
+    if (group == nullptr) {
+        Net::instance()->loadGroups();
+    } else {
+        group->setLast(message);
+        Store::instance()->groupList()->sortItems();
+        if (Store::instance()->currentGroup() == group) {
+            Store::instance()->currentGroup()->setRead(message->mid());
+            mergeMessageList(QList < MessageModel * > () << message, false, false);
+        }
+        Database::instance()->saveGroups(QList < GroupModel * > () << group);
+    }
 }
 
 void Control::openGroup(GroupModel *item) {
@@ -262,9 +275,64 @@ void Control::updateOnlineStatus() {
     });
 }
 
-void Control::uploadFile(QString path, QJSValue callable) {
-    // 获取后缀名
-    auto suffix = path.mid(path.lastIndexOf('.') + 1);
-    Net::instance()->uploadFile(path, suffix);
+void Control::sendImage(int gid, QString filePath) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "open file error";
+    }
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    QByteArray base64Data = fileData.toBase64();
+    QString base64String = "data:image/png;base64," + QString(base64Data);
+    if (base64String.size() > 1024 * 1024 * 10) {
+        showError("图片不能大于10M");
+        return;
+    }
+    sendMessage(gid, "image", base64String);
+}
+
+void Control::setGroupRemark(QString remark) {
+    auto group = Store::instance()->currentGroup();
+    if (group == nullptr)return;
+    group->setRemark(remark);
+    Database::instance()->saveGroups(QList < GroupModel * > () << group);
+}
+
+void Control::sendFile(int gid, QString filePath, QString fileName) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "open file error";
+    }
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    QByteArray base64Data = fileData.toBase64();
+    QString base64String = QString(base64Data);
+
+    QJsonObject json;
+    json.insert("name", fileName);
+    json.insert("data", base64String);
+    auto messageString = QJsonDocument(json).toJson(QJsonDocument::Compact);
+    if (messageString.size() > 1024 * 1024 * 10) {
+        showError("大于10M文件请使用P2P同传");
+        return;
+    }
+
+    qDebug() << messageString;
+    sendMessage(gid, "file", messageString);
+}
+
+
+void Control::saveBase64File(QString filePath, QString base64) {
+    auto fileData = QByteArray::fromBase64(base64.toUtf8());
+    auto file = new QFile(filePath);
+    if (!file->open(QIODevice::WriteOnly)) {
+        qDebug() << "open file error";
+    }
+    file->write(fileData);
+    file->close();
+    delete file;
+    showSuccess("保存成功");
 }
 

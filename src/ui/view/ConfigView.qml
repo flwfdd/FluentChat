@@ -2,7 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
 import QtQuick.Controls
+import QtMultimedia
 import FluentUI
+
 
 FluScrollablePage {
     title: "设置"

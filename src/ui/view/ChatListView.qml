@@ -90,7 +90,11 @@ Item {
 
                     FluText {
                         id: item_title
-                        text: model.type === "twin" ? (model.owner.remark ? model.owner.remark : model.owner.nickname) : (model.remark ? model.remark : model.name)
+                        text: {
+                            if (model.remark) return model.remark;
+                            if (model.type === "twin") return model.owner.remark ? model.owner.remark : model.owner.nickname
+                            return model.name
+                        }
                         elide: Text.ElideRight
                         maximumLineCount: 1
                         font.pixelSize: 16
@@ -118,6 +122,15 @@ Item {
                             switch (model.last.type) {
                                 case "text":
                                     text += model.last.content
+                                    break
+                                case "image":
+                                    text += "[图片]"
+                                    break
+                                case "file":
+                                    text += "[文件]"
+                                    break
+                                case "online_file":
+                                    text += "[直传文件]"
                                     break
                             }
                             return text
@@ -495,6 +508,7 @@ Item {
                     left: parent.left
                     leftMargin: 6
                 }
+                visible: store.groupList.length !== 0
                 property bool enableAnimation: true
 
                 Behavior on y {
@@ -533,6 +547,7 @@ Item {
             ScrollBar.vertical: FluScrollBar {
             }
             boundsBehavior: Flickable.DragOverBounds
+            currentIndex: -1
 
             onCurrentIndexChanged: {
                 if (chat_list.currentIndex !== -1) {
