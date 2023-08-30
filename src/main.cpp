@@ -8,13 +8,13 @@
 #include <QQmlApplicationEngine>
 
 
-void inject(QQmlApplicationEngine & engine) {
+void inject(QQmlApplicationEngine &engine) {
     auto store = Store::instance();
     store->control()->initConnect();
     auto users = Store::instance()->users();
     auto groupListModel = store->groupList();
     auto messageListModel = store->messageList();
-    auto groups=new QList<GroupModel*>();
+    auto groups = new QList<GroupModel *>();
 //    auto uids = QList<int>();
 //    for (int i = 1; i < 111; i++) {
 //        uids << i;
@@ -34,7 +34,9 @@ void inject(QQmlApplicationEngine & engine) {
 //                    new GroupModel(i, "twin", "私聊" + QString::number(i), "急", "#aef", "", user, nullptr, 0));
 //    }
 
+
 //    Control::instance()->init();
+//    Net::instance()->uploadFile("D:/code/FluentChat/bin/debug/test.txt", ".txt");
 
 //    auto usersList = QList<UserModel *>();
 //    for (int i = 0; i < 123; i++) {

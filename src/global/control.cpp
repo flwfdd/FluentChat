@@ -39,15 +39,15 @@ void Control::sendMessage(int gid, QString type, QString content) {
 }
 
 void Control::receiveMessage(MessageModel *message) {
-    Database::instance()->saveMessages(QList<MessageModel *>() << message);
+    Database::instance()->saveMessages(QList < MessageModel * > () << message);
     auto group = Store::instance()->currentGroup();
     if (group == nullptr || group->id() != message->gid())return;
     auto *message2 = new MessageModel(message->id(), message->type(), message->content(), message->time(),
                                       message->user(), message->gid(), message->mid(), message->recall());
     group->setLast(message2);
     Store::instance()->groupList()->sortItems();
-    Database::instance()->saveGroups(QList<GroupModel *>() << group);
-    mergeMessageList(QList<MessageModel *>() << message, false, false);
+    Database::instance()->saveGroups(QList < GroupModel * > () << group);
+    mergeMessageList(QList < MessageModel * > () << message, false, false);
 }
 
 void Control::openGroup(GroupModel *item) {
@@ -60,11 +60,11 @@ void Control::openGroup(GroupModel *item) {
 
 void Control::initMessageList() {
     auto messageList = Store::instance()->messageList();
-    Store::instance()->setCurrentGroupUsers(QList<UserModel *>());
+    Store::instance()->setCurrentGroupUsers(QList < UserModel * > ());
     messageList->setHasMore(false);
     auto group = Store::instance()->currentGroup();
     if (group == nullptr) {
-        messageList->setItems(QList<MessageModel *>());
+        messageList->setItems(QList < MessageModel * > ());
         return;
     }
 
@@ -77,7 +77,7 @@ void Control::initMessageList() {
 
     // 加载群消息
     if (group->last() == nullptr) {
-        messageList->setItems(QList<MessageModel *>());
+        messageList->setItems(QList < MessageModel * > ());
         return;
     } else {
         auto endMid = group->last()->mid();
@@ -99,7 +99,7 @@ void Control::initMessageList() {
 }
 
 void Control::mergeMessageList(QList<MessageModel *> list, bool front, bool replace) {
-    auto m_list = replace ? QList<MessageModel *>() : Store::instance()->messageList()->items();
+    auto m_list = replace ? QList < MessageModel * > () : Store::instance()->messageList()->items();
     std::sort(list.begin(), list.end(), [](MessageModel *a, MessageModel *b) {
         return a->mid() < b->mid();
     });
@@ -118,11 +118,11 @@ void Control::mergeMessageList(QList<MessageModel *> list, bool front, bool repl
 
 
 QList<UserModel *> Control::getUsers(QList<int> ids) {
-    auto idSet = QSet<int>(ids.begin(), ids.end()); // 去重
+    auto idSet = QSet < int > (ids.begin(), ids.end()); // 去重
     auto users = Store::instance()->users();
-    auto userList = QList<UserModel *>();
-    auto unloaded = QList<UserModel *>();
-    auto unloadedSet = QSet<UserModel *>();
+    auto userList = QList < UserModel * > ();
+    auto unloaded = QList < UserModel * > ();
+    auto unloadedSet = QSet < UserModel * > ();
     for (auto id: idSet) {
         if (!users->contains(id)) {
             // 不存在则先新建占位
@@ -161,7 +161,7 @@ void Control::init() {
     if (Store::instance()->currentUser() == nullptr) {
         QString uid = Store::instance()->getConfig("loginUid");
         if (uid.isEmpty())return;
-        Store::instance()->setCurrentUser(getUsers(QList<int>() << uid.toInt()).first());
+        Store::instance()->setCurrentUser(getUsers(QList < int > () << uid.toInt()).first());
     }
     Store::instance()->groupList()->setItems(db->getGroups());
     Net::instance()->loadGroups();
@@ -239,15 +239,15 @@ void Control::createGroup(const QString &name, const QString &avatar, const QStr
 
 void Control::updateOnlineStatus() {
     // 加入群组列表中的
-    auto groupList=Store::instance()->groupList();
-    for (auto group:groupList->items()) {
-        if(group->type()!="twin")continue;
-        auto users=group->owner();
-        if(users==nullptr)continue;
+    auto groupList = Store::instance()->groupList();
+    for (auto group: groupList->items()) {
+        if (group->type() != "twin")continue;
+        auto users = group->owner();
+        if (users == nullptr)continue;
         checkOnlineUids.insert(users);
     }
     if (checkOnlineUids.empty())return;
-    auto uids = QList<int>();
+    auto uids = QList < int > ();
     for (auto user: checkOnlineUids) {
         uids.append(user->id());
     }
@@ -260,5 +260,11 @@ void Control::updateOnlineStatus() {
             user->setOnline(status[i]);
         }
     });
+}
+
+void Control::uploadFile(QString path, QJSValue callable) {
+    // 获取后缀名
+    auto suffix = path.mid(path.lastIndexOf('.') + 1);
+    Net::instance()->uploadFile(path, suffix);
 }
 

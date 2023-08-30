@@ -8,6 +8,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QJSValue>
 #include "model/group.h"
 #include "model/user.h"
 #include "data/net.h"
@@ -48,6 +49,8 @@ public:
     void showSuccess(const QString &message);
 
     void showError(const QString &message);
+
+    Q_INVOKABLE void uploadFile(QString path, QJSValue callable);
 
 
 public

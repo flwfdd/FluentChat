@@ -34,6 +34,8 @@ public:
 
     void saveRead(int gid, int mid); // 保存已读消息
 
+    void loadRead(QList<GroupModel *> groups); // 加载已读消息
+
 private:
     QSqlDatabase db;
 

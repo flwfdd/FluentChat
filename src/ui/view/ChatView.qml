@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Window
 import QtQuick.Controls
-import FluentUI
+import QtQuick.Dialogs
 import Qt5Compat.GraphicalEffects
+import FluentUI
 import "qrc:/FluentChat/ui/component/"
 
 FluPage {
@@ -506,13 +507,11 @@ FluPage {
                     lastGroupWhenBottom = store.currentGroup
                     message_view.positionViewAtEnd()
                     if (message_view.model.length) {
-                        console.log(message_view.model[0])
                         oldFirst = message_view.model[0].id
                     }
                     loading = false
                 } else {
                     if (message_view.model.length && oldFirst !== message_view.model[0].id) {
-                        console.log(message_view.model[0], oldFirst)
                         loading = false
                         var idx = 0
                         for (var i = 0; i < message_view.model.length; i++) {
@@ -577,10 +576,13 @@ FluPage {
                     }
                 }
 
+                // 上传图片
                 FluIconButton {
                     iconSource: FluentIcons.Photo
                     iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                     onClicked: {
+                        image_upload_dialog.callback=image_upload_dialog.seleteFileCallback
+                        image_upload_dialog.open()
                     }
                 }
 
@@ -708,5 +710,38 @@ FluPage {
         }
     }
 
+    // 图片上传
+    FileDialog {
+        id: image_upload_dialog
+        property var callback: null
+        onAccepted: {
+            var path=FluTools.toLocalPath(selectedFile)
+            if(callback)callback(path)
+        }
+
+        function seleteFileCallback(file){
+            console.log(file)
+            var callable = {}
+            callable.onStart = function(){
+                showSuccess("开始上传")
+            }
+            callable.onSuccess = function(result){
+                showSuccess("上传成功")
+                console.debug(result)
+            }
+            callable.onError = function(){
+                showError("上传失败")
+            }
+            callable.onProgress = function(sent,total){
+                var locale = Qt.locale()
+                var precent = (sent/total * 100).toFixed(0) + "%"
+                var text = "上传中..."+precent
+                console.log(text)
+                text =  "%1/%2".arg(locale.formattedDataSize(sent)).arg(locale.formattedDataSize(total))
+                console.log(text)
+            }
+            store.control.uploadFile(file,callable)
+        }
+    }
 
 }

@@ -12,6 +12,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QWebSocket>
+#include <QJSValue>
 #include "model/group.h"
 
 class Net : public QObject {
@@ -58,6 +59,8 @@ public:
     void getOnlineStatus(const QList<int> &uids, const std::function<void(QList<bool>)> &callback);
 
     void sendMessage(int gid, QString type, QString content, const std::function<void()> &callback);
+
+    void uploadFile(QString path,QString suffix);
 
 private:
 

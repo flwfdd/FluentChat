@@ -3,6 +3,10 @@
 //
 
 #include <QUrlQuery>
+#include <QHttpMultiPart>
+#include <QFile>
+#include <QEventLoop>
+#include <QThreadPool>
 #include "net.h"
 #include "global/store.h"
 
@@ -98,7 +102,16 @@ void Net::loadGroupFromJson(const QJsonObject &json, GroupModel *group) {
     group->setName(json["name"].toString());
     group->setAvatar(json["avatar"].toString());
     group->setColor(json["color"].toString());
-    group->setOwner(Control::instance()->getUsers(QList<int>() << json["owner"].toInt())[0]);
+    if (json["type"] == "twin") {
+        auto uids = json["name"].toString().split(",");
+        auto uid0 = uids[0].toInt();
+        auto uid1 = uids[1].toInt();
+        if (uid0 == Store::instance()->currentUser()->id()) {
+            group->setOwner(Control::instance()->getUsers(QList < int > () << uid1)[0]);
+        } else {
+            group->setOwner(Control::instance()->getUsers(QList < int > () << uid0)[0]);
+        }
+    } else group->setOwner(Control::instance()->getUsers(QList < int > () << json["owner"].toInt())[0]);
     if (json["last"].isNull())group->setLast(nullptr);
     else {
         auto last = new MessageModel();
@@ -112,7 +125,7 @@ void Net::loadMessageFromJson(const QJsonObject &json, MessageModel *message) {
     message->setType(json["type"].toString());
     message->setContent(json["content"].toString());
     message->setTime(json["time"].toInteger());
-    message->setUser(Control::instance()->getUsers(QList<int>() << json["uid"].toInt())[0]);
+    message->setUser(Control::instance()->getUsers(QList < int > () << json["uid"].toInt())[0]);
     message->setGid(json["gid"].toInt());
     message->setMid(json["mid"].toInt());
 }
@@ -129,7 +142,7 @@ void Net::loadUsers(const QList<UserModel *> &users) {
     post("/user/infos", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
         auto jsonList = doc.array();
         auto users = Store::instance()->users();
-        auto list = QList<UserModel *>();
+        auto list = QList < UserModel * > ();
         for (auto &&it: jsonList) {
             auto json = it.toObject();
             auto user = users->value(json["id"].toInt());
@@ -144,9 +157,9 @@ void Net::loadUsers(const QList<UserModel *> &users) {
 void Net::loadGroups() {
     get("/group/list", QMap<QString, QString>(), [=](const QJsonDocument &doc) {
         auto jsonList = doc.array();
-        auto groups = QList<GroupModel *>();
-        auto uids = QList<int>();
-        auto groupJsonList = QList<QJsonObject>();
+        auto groups = QList < GroupModel * > ();
+        auto uids = QList < int > ();
+        auto groupJsonList = QList < QJsonObject > ();
         for (auto &&it: jsonList) {
             auto json = it.toObject();
             groupJsonList.append(json);
@@ -160,11 +173,13 @@ void Net::loadGroups() {
             loadGroupFromJson(json, group);
             groups.append(group);
         }
-        auto messages = QList<MessageModel *>();
+        auto messages = QList < MessageModel * > ();
         for (auto group: groups) {
             if (group->last() != nullptr)
                 messages.append(group->last());
         }
+        //加载已读
+        Database::instance()->loadRead(groups);
         // 保存到数据库
         Database::instance()->saveMessages(messages);
         Database::instance()->saveGroups(groups);
@@ -173,16 +188,16 @@ void Net::loadGroups() {
     });
 }
 
-void Net::getMessages(int gid, int start, int end, const std::function<void(QList<MessageModel *>)> &callback) {
+void Net::getMessages(int gid, int start, int end, const std::function<void(QList < MessageModel * > )> &callback) {
     QMap<QString, QString> params;
     params["gid"] = QString::number(gid);
     if (start != -1)params["start"] = QString::number(start);
     if (end != -1)params["end"] = QString::number(end);
     get("/message/history", params, [=](const QJsonDocument &doc) {
         auto jsonList = doc.array();
-        auto messageJsonList = QList<QJsonObject>();
-        auto messages = QList<MessageModel *>();
-        auto uids = QList<int>();
+        auto messageJsonList = QList < QJsonObject > ();
+        auto messages = QList < MessageModel * > ();
+        auto uids = QList < int > ();
         for (auto &&it: jsonList) {
             auto json = it.toObject();
             messageJsonList.append(json);
@@ -202,13 +217,13 @@ void Net::getMessages(int gid, int start, int end, const std::function<void(QLis
     });
 }
 
-void Net::getGroupUsers(int gid, const std::function<void(QList<UserModel *>)> &callback) {
+void Net::getGroupUsers(int gid, const std::function<void(QList < UserModel * > )> &callback) {
     QMap<QString, QString> params;
     params["gid"] = QString::number(gid);
     get("/group/users", params, [=](const QJsonDocument &doc) {
         auto jsonList = doc.array();
-        auto users = QList<UserModel *>();
-        auto uids = QList<int>();
+        auto users = QList < UserModel * > ();
+        auto uids = QList < int > ();
         for (auto &&it: jsonList) {
             uids.append(it.toInt());
         }
@@ -223,7 +238,7 @@ void Net::login(const QString &username, const QString &password, const std::fun
     post("/user/login", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
         auto json = doc.object();
         auto uid = json["user"].toObject()["id"].toInt();
-        auto user = Control::instance()->getUsers(QList<int>() << uid)[0];  // 加载用户
+        auto user = Control::instance()->getUsers(QList < int > () << uid)[0];  // 加载用户
         Store::instance()->setConfig("cookie", json["cookie"].toString());
         Store::instance()->setConfig("loginUid", QString::number(uid));
         Store::instance()->setConfig("loginUsername", username);
@@ -242,7 +257,7 @@ void Net::resgisterUser(const QString &username, const QString &password, const 
     post("/user/register", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
         auto json = doc.object();
         auto uid = json["user"].toObject()["id"].toInt();
-        auto user = Control::instance()->getUsers(QList<int>() << uid)[0];  // 加载用户
+        auto user = Control::instance()->getUsers(QList < int > () << uid)[0];  // 加载用户
         Store::instance()->setConfig("cookie", json["cookie"].toString());
         Store::instance()->setConfig("loginUid", QString::number(uid));
         Store::instance()->setConfig("loginUsername", username);
@@ -278,7 +293,7 @@ void Net::createGroup(const QString &name, const QString &avatar, const QString 
     });
 }
 
-void Net::getOnlineStatus(const QList<int> &uids, const std::function<void(QList<bool>)> &callback) {
+void Net::getOnlineStatus(const QList<int> &uids, const std::function<void(QList < bool > )> &callback) {
     QJsonObject requestJson;
     auto uidsStr = QString();
     for (auto uid: uids) {
@@ -288,7 +303,7 @@ void Net::getOnlineStatus(const QList<int> &uids, const std::function<void(QList
     requestJson["uids"] = uidsStr;
     post("/user/onlines", QJsonDocument(requestJson), [=](const QJsonDocument &doc) {
         auto jsonList = doc.array();
-        auto list = QList<bool>();
+        auto list = QList < bool > ();
         for (auto &&it: jsonList) {
             list.append(it.toBool());
         }
@@ -306,6 +321,87 @@ void Net::sendMessage(int gid, QString type, QString content, const std::functio
     });
 }
 
+
+void Net::uploadFile(QString path, QString suffix) {
+//    QThreadPool::globalInstance()->start([=]() {
+
+    QNetworkRequest request;
+    QString urlStr = baseUrl() + "/upload";
+    qDebug() << "uploading" << path << suffix << urlStr;
+    request.setUrl(QUrl(urlStr));
+//        request.setRawHeader("Cookie", Store::instance()->getConfig("cookie").toUtf8());
+
+    // 加入文件
+    auto *file = new QFile(path);
+    file->open(QIODevice::ReadOnly);
+//    if (!file->open(QIODevice::ReadOnly)) {
+//        callable.property("onError").call();
+//        return;
+//    }
+
+
+    auto multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    // 添加文件参数
+    QHttpPart filePart;
+    filePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    filePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"file\""));
+    filePart.setBodyDevice(file);
+    file->setParent(multiPart);
+    multiPart->append(filePart);
+
+    // 添加字符串参数
+    QHttpPart suffixPart;
+    suffixPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant("form-data; name=\"suffix\""));
+    suffixPart.setBody(suffix.toUtf8());
+    multiPart->append(suffixPart);
+
+    QNetworkAccessManager manager_;
+    QNetworkReply *reply = manager_.post(request, multiPart);
+    multiPart->setParent(reply);
+
+    qDebug() << "uploading";
+
+
+//        QNetworkReply *reply = manager_.post(request, &multiPart);
+//        qDebug() << "uploading2";
+//    _cache.append(reply);
+//        connect(&manager_, &QNetworkAccessManager::finished, this, [&loop](QNetworkReply *reply) {
+//            qDebug() << "uploading4";
+//            loop.quit();
+//        });
+    connect(reply, &QNetworkReply::metaDataChanged, [=]() {
+        qDebug() << "metaDataChanged";
+    });
+    connect(reply, &QNetworkReply::finished, [=]() {
+        qDebug() << "uploading3";
+        QString result = QString::fromUtf8(reply->readAll());
+        qDebug() << result;
+    });
+    connect(reply, &QNetworkReply::readyRead, [=]() {
+        QByteArray array = reply->readAll();
+        qDebug() << array;
+        //file->close();
+    });
+    connect(reply, &QNetworkReply::uploadProgress, this, [=](qint64 bytesSent, qint64 bytesTotal) {
+//        QJSValueList args;
+//        args << static_cast<double>(bytesSent);
+//        args << static_cast<double>(bytesTotal);
+//        QJSValue onProgress = callable.property("onProgress");
+//        onProgress.call(args);
+        qDebug() << bytesSent << bytesTotal;
+    });
+//    loop.exec();
+//    QString result = QString::fromUtf8(reply->readAll());
+//    bool isSuccess = reply->error() == QNetworkReply::NoError;
+//    _cache.removeOne(reply);
+//    reply->deleteLater();
+//    if (isSuccess) {
+//        callable.property("onSuccess").call(QJSValueList()<<result);
+//    }else{
+//        callable.property("onError").call();
+//    }
+//    });
+}
 
 Ws::Ws(QObject *parent) : QObject(parent) {
     socket = new QWebSocket();
@@ -333,8 +429,11 @@ void Ws::init() {
     connect(socket, &QWebSocket::textMessageReceived, [=](const QString &message) {
         qDebug() << "receive:" << message;
         auto messageModel = new MessageModel();
-        Net::instance()->loadMessageFromJson(QJsonDocument::fromJson(message.toUtf8()).object(), messageModel);
-        Control::instance()->receiveMessage(messageModel);
+        auto json = QJsonDocument::fromJson(message.toUtf8()).object();
+        if (json["type"] == "message") {
+            Net::instance()->loadMessageFromJson(json["data"].toObject(), messageModel);
+            Control::instance()->receiveMessage(messageModel);
+        }
     });
 
     connect(socket, &QWebSocket::connected, [=]() {
@@ -342,10 +441,10 @@ void Ws::init() {
 
         QJsonObject requestJson;
         requestJson["cookie"] = Store::instance()->getConfig("cookie");
-        requestJson["ip"] = "";
-        requestJson["port"] = "";
+        requestJson["ip"] = "1.1.1.1";
+        requestJson["port"] = "2333";
 
-        socket->sendTextMessage(requestJson["cookie"].toString());
+        socket->sendTextMessage(QJsonDocument(requestJson).toJson());
     });
 }
 

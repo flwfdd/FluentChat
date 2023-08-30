@@ -69,15 +69,15 @@ void Database::setUserId(int userId) {
     uid = QString::number(userId);
     QSqlQuery query;
     // 创建群组表
-    QString createTableQuery = "CREATE TABLE IF NOT EXISTS `group"+uid+"` ("
-                       "`id` INTEGER NOT NULL PRIMARY KEY, "
-                       "`type` VARCHAR(255) NOT NULL, "
-                       "`name` VARCHAR(255) NOT NULL, "
-                       "`avatar` VARCHAR(255) NOT NULL, "
-                       "`color` VARCHAR(255) NOT NULL, "
-                       "`owner` INTEGER NOT NULL, "
-                       "`last` INTEGER, " // 最后一条消息的id
-                       "`read` INTEGER DEFAULT 0)";
+    QString createTableQuery = "CREATE TABLE IF NOT EXISTS `group" + uid + "` ("
+                                                                           "`id` INTEGER NOT NULL PRIMARY KEY, "
+                                                                           "`type` VARCHAR(255) NOT NULL, "
+                                                                           "`name` VARCHAR(255) NOT NULL, "
+                                                                           "`avatar` VARCHAR(255) NOT NULL, "
+                                                                           "`color` VARCHAR(255) NOT NULL, "
+                                                                           "`owner` INTEGER NOT NULL, "
+                                                                           "`last` INTEGER, " // 最后一条消息的id
+                                                                           "`read` INTEGER DEFAULT 0)";
     if (!query.exec(createTableQuery)) {
         qDebug() << "Failed to create table:" << query.lastError().text();
     }
@@ -129,12 +129,14 @@ QList<UserModel *> Database::loadUsers(QList<UserModel *> users) {
 void Database::saveGroups(QList<GroupModel *> groups) {
     if (groups.isEmpty())return;
     QSqlQuery query;
-    QString insertQuery = "INSERT OR REPLACE INTO `group"+uid+"` (`id`, `type`, `name`, `avatar`, `color`, `owner`, `last`) VALUES ";
+    QString insertQuery = "INSERT OR REPLACE INTO `group" + uid +
+                          "` (`id`, `type`, `name`, `avatar`, `color`, `owner`, `last`, `read`) VALUES ";
     for (auto group: groups) {
         insertQuery +=
                 "(" + QString::number(group->id()) + ", '" + group->type() + "', '" + group->name() + "', '" +
                 group->avatar() + "', '" + group->color() + "', " + QString::number(group->owner()->id()) + ", " +
-                (group->last() ? QString::number(group->last()->id()) : "NULL") + "),";
+                (group->last() ? QString::number(group->last()->id()) : "NULL") + ", " +
+                QString::number(group->read()) + "),";
     }
     insertQuery = insertQuery.left(insertQuery.length() - 1);
     if (!query.exec(insertQuery)) {
@@ -145,7 +147,7 @@ void Database::saveGroups(QList<GroupModel *> groups) {
 QList<GroupModel *> Database::getGroups() {
     QList<GroupModel *> groups;
     QSqlQuery query;
-    QString selectQuery = "SELECT * FROM `group"+uid+"`";
+    QString selectQuery = "SELECT * FROM `group" + uid + "`";
     if (!query.exec(selectQuery)) {
         qDebug() << "Failed to load groups:" << query.lastError().text();
     } else {
@@ -156,7 +158,7 @@ QList<GroupModel *> Database::getGroups() {
             group->setName(query.value(2).toString());
             group->setAvatar(query.value(3).toString());
             group->setColor(query.value(4).toString());
-            group->setOwner(Control::instance()->getUsers(QList<int>() << query.value(5).toInt())[0]);
+            group->setOwner(Control::instance()->getUsers(QList < int > () << query.value(5).toInt())[0]);
             auto message_id = query.value(6).toInt();
             group->setLast(getMessage(message_id));
             group->setRead(query.value(7).toInt());
@@ -188,7 +190,7 @@ void loadMessageFromQuery(QSqlQuery &query, MessageModel *message) {
     message->setType(query.value(1).toString());
     message->setContent(query.value(2).toString());
     message->setTime(query.value(3).toInt());
-    message->setUser(Control::instance()->getUsers(QList<int>() << query.value(4).toInt())[0]);
+    message->setUser(Control::instance()->getUsers(QList < int > () << query.value(4).toInt())[0]);
     message->setGid(query.value(5).toInt());
     message->setMid(query.value(6).toInt());
     message->setRecall(query.value(7).toBool());
@@ -228,10 +230,31 @@ QList<MessageModel *> Database::getMessages(int gid, int start, int end) {
 
 void Database::saveRead(int gid, int mid) {
     QSqlQuery query;
-    QString updateQuery = "UPDATE `group"+uid+"` SET `read` = " + QString::number(mid) + " WHERE `id` = " +
+    QString updateQuery = "UPDATE `group" + uid + "` SET `read` = " + QString::number(mid) + " WHERE `id` = " +
                           QString::number(gid);
     if (!query.exec(updateQuery)) {
         qDebug() << "Failed to update group:" << query.lastError().text();
     }
 }
 
+void Database::loadRead(QList<GroupModel *> groups) {
+    if (groups.empty())return;
+    QMap<int, GroupModel *> map;
+    for (auto group: groups) {
+        map.insert(group->id(), group);
+    }
+    QSqlQuery query;
+    QString selectQuery = "SELECT `id`,`read` FROM `group" + uid + "` WHERE `id` IN (";
+    for (auto id: map.keys()) {
+        selectQuery += QString::number(id) + ",";
+    }
+    selectQuery = selectQuery.left(selectQuery.length() - 1) + ")";
+    if (!query.exec(selectQuery)) {
+        qDebug() << "Failed to load groups:" << query.lastError().text();
+    } else {
+        while (query.next()) {
+            auto group = map.value(query.value(0).toInt());
+            group->setRead(query.value(1).toInt());
+        }
+    }
+}
