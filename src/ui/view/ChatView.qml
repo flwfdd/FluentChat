@@ -177,6 +177,14 @@ FluPage {
                             message_image_rectangle.height = sourceSize.height * scale
                         }
                     }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            image_viwer_image.source = model.content
+                            image_viwer.visible = true
+                        }
+                    }
                 }
             }
 
@@ -268,6 +276,18 @@ FluPage {
                         left: parent.left
                         leftMargin: 15
                         verticalCenter: parent.verticalCenter
+                        verticalCenterOffset: -5
+                    }
+                }
+
+                FluText {
+                    id: message_file_size
+                    color: FluTheme.dark ? FluColors.Grey100 : FluColors.Grey100
+                    font.pixelSize: 10
+                    anchors {
+                        top: message_file_icon.bottom
+                        topMargin: 5
+                        horizontalCenter: message_file_icon.horizontalCenter
                     }
                 }
 
@@ -284,7 +304,6 @@ FluPage {
                         left: message_file_icon.right
                         leftMargin: 10
                         right: message_file_button.left
-                        rightMargin: 5
                         verticalCenter: parent.verticalCenter
                     }
                 }
@@ -292,6 +311,7 @@ FluPage {
                 FluTextButton {
                     id: message_file_button
                     text: "下载"
+                    width: 60
                     onClicked: {
                         var jsonString = model.content
                         var json = JSON.parse(jsonString)
@@ -325,6 +345,166 @@ FluPage {
                 var jsonString = model.content
                 var json = JSON.parse(jsonString)
                 message_file_text.text = json.name
+
+                var size = json.size
+                if (size < 1024) {
+                    message_file_size.text = size + "B"
+                } else if (size < 1024 * 1024) {
+                    message_file_size.text = (size / 1024).toFixed(2) + "KB"
+                } else if (size < 1024 * 1024 * 1024) {
+                    message_file_size.text = (size / 1024 / 1024).toFixed(2) + "MB"
+                } else {
+                    message_file_size.text = (size / 1024 / 1024 / 1024).toFixed(2) + "GB"
+                }
+            }
+        }
+    }
+
+    Component {
+        id: message_p2p_file
+        Item {
+            id: message_p2p_file_item
+            width: message_view.width - 10 //避开滚动条
+            height: {
+                return Math.max(message_p2p_file_avatar.height, message_p2p_file_rectangle.height + message_p2p_file_name.height) + message_p2p_file_time.height + 10
+            }
+            clip: true
+
+            ChatAvatar {
+                id: message_p2p_file_avatar
+                bgColor: model.user.color
+                avatar: model.user.avatar
+                online: model.user.online
+                size: 35
+                anchors {
+                    top: parent.top
+                    left: isSender ? undefined : parent.left
+                    right: isSender ? parent.right : undefined
+                }
+            }
+
+            FluText {
+                id: message_p2p_file_name
+                text: model.user.remark ? model.user.remark : model.user.nickname
+                maximumLineCount: 1
+                horizontalAlignment: isSender ? Text.AlignRight : Text.AlignLeft
+                elide: Text.ElideRight
+                color: FluTheme.dark ? FluColors.Grey100 : FluColors.Grey100
+                font.pixelSize: 12
+                anchors {
+                    top: parent.top
+                    left: isSender ? message_p2p_file_item.left : message_p2p_file_avatar.right
+                    leftMargin: 10
+                    right: isSender ? message_p2p_file_avatar.left : message_p2p_file_item.right
+                    rightMargin: 10
+                }
+            }
+
+            FluArea {
+                id: message_p2p_file_rectangle
+                width: 250
+                height: 100
+                radius: 10
+                anchors {
+                    top: message_p2p_file_name.bottom
+                    topMargin: 5
+                    left: isSender ? undefined : message_p2p_file_avatar.right
+                    leftMargin: 10
+                    right: isSender ? message_p2p_file_avatar.left : undefined
+                    rightMargin: 10
+                }
+
+
+                FluIcon {
+                    id: message_p2p_file_icon
+                    iconSource: FluentIcons.Network
+                    iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                    iconSize: 42
+                    anchors {
+                        left: parent.left
+                        leftMargin: 15
+                        verticalCenter: parent.verticalCenter
+                        verticalCenterOffset: -5
+                    }
+                }
+
+                FluText {
+                    id: message_p2p_file_size
+                    color: FluTheme.dark ? FluColors.Grey100 : FluColors.Grey100
+                    font.pixelSize: 10
+                    anchors {
+                        top: message_p2p_file_icon.bottom
+                        topMargin: 5
+                        horizontalCenter: message_p2p_file_icon.horizontalCenter
+                    }
+                }
+
+                FluText {
+                    id: message_p2p_file_text
+                    color: FluTheme.dark ? FluColors.White : FluColors.Black
+                    font.pixelSize: 14
+                    maximumLineCount: 3
+                    wrapMode: Text.WrapAnywhere
+                    elide: Text.ElideRight
+                    width: parent.width
+
+                    anchors {
+                        left: message_p2p_file_icon.right
+                        leftMargin: 10
+                        right: message_p2p_file_button.left
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                FluTextButton {
+                    id: message_p2p_file_button
+                    text: "下载"
+                    width: 60
+                    onClicked: {
+                        var jsonString = model.content
+                        var json = JSON.parse(jsonString)
+                        p2p_file_download_dialog.fileName = json.name
+                        p2p_file_download_dialog.fileHash = json.hash
+                        p2p_file_download_dialog.uid = model.user.id
+                        p2p_file_download_dialog.open()
+                    }
+                    anchors {
+                        right: parent.right
+                        rightMargin: 10
+                        bottom: parent.bottom
+                        bottomMargin: 10
+                    }
+                }
+            }
+
+            FluText {
+                id: message_p2p_file_time
+                text: Qt.formatDateTime(new Date(model.time * 1000), "yyyy-MM-dd hh:mm:ss") + " · #" + model.mid
+                color: FluTheme.dark ? FluColors.Grey120 : FluColors.Grey80
+                font.pixelSize: 10
+                anchors {
+                    top: message_p2p_file_rectangle.bottom
+                    topMargin: 5
+                    left: isSender ? undefined : message_p2p_file_rectangle.left
+                    right: isSender ? message_p2p_file_rectangle.right : undefined
+                }
+            }
+
+            Component.onCompleted: {
+                var jsonString = model.content
+                var json = JSON.parse(jsonString)
+                message_p2p_file_text.text = json.name
+
+                var size = json.size
+                if (size < 1024) {
+                    message_p2p_file_size.text = size + "B"
+                } else if (size < 1024 * 1024) {
+                    message_p2p_file_size.text = (size / 1024).toFixed(2) + "KB"
+                } else if (size < 1024 * 1024 * 1024) {
+                    message_p2p_file_size.text = (size / 1024 / 1024).toFixed(2) + "MB"
+                } else {
+                    message_p2p_file_size.text = (size / 1024 / 1024 / 1024).toFixed(2) + "GB"
+                }
             }
         }
     }
@@ -619,6 +799,9 @@ FluPage {
                     if (model.type === "file") {
                         return message_file
                     }
+                    if (model.type === "p2p_file") {
+                        return message_p2p_file
+                    }
                 }
             }
 
@@ -714,9 +897,10 @@ FluPage {
 
                 FluIconButton {
                     text: "P2P文件同传"
-                    iconSource: FluentIcons.Folder
+                    iconSource: FluentIcons.Network
                     iconColor: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
                     onClicked: {
+                        p2p_file_upload_dialog.open()
                     }
                 }
 
@@ -937,13 +1121,24 @@ FluPage {
     // 文件上传
     FileDialog {
         id: file_upload_dialog
-        property var callback: null
         fileMode: FileDialog.OpenFile
 
         onAccepted: {
             var filePath = FluTools.toLocalPath(selectedFile)
             var fileName = FluTools.getFileNameByUrl(selectedFile)
             store.control.sendFile(store.currentGroup.id, filePath, fileName)
+        }
+    }
+
+    // P2P文件上传
+    FileDialog {
+        id: p2p_file_upload_dialog
+        fileMode: FileDialog.OpenFile
+
+        onAccepted: {
+            var filePath = FluTools.toLocalPath(selectedFile)
+            var fileName = FluTools.getFileNameByUrl(selectedFile)
+            store.control.sendP2PFile(store.currentGroup.id, filePath, fileName)
         }
     }
 
@@ -957,6 +1152,171 @@ FluPage {
             var folderPath = FluTools.toLocalPath(selectedFolder)
             var filePath = folderPath + "/" + fileName
             store.control.saveBase64File(filePath, fileData)
+        }
+    }
+
+    // P2P文件下载
+    FolderDialog {
+        id: p2p_file_download_dialog
+        property var fileName
+        property var fileHash
+        property var uid
+        onAccepted: {
+            if (!fileName || !fileHash) return
+            var folderPath = FluTools.toLocalPath(selectedFolder)
+            var filePath = folderPath + "/" + fileName
+            console.log(uid, filePath, fileHash)
+            store.control.saveP2PFile(uid, filePath, fileHash)
+        }
+    }
+
+    // P2P下载进度
+    Popup {
+        id: p2p_file_download_progress_popup
+        modal: true
+        width: 400
+        height: 200
+        visible: false
+        opacity: 0
+        closePolicy: Popup.NoAutoClose
+        anchors.centerIn: Overlay.overlay
+        background: Rectangle {
+            color: "transparent"
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 0.0;
+                to: 1.0
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 1.0;
+                to: 0.0
+            }
+        }
+
+        FluArea {
+            anchors.fill: parent
+            radius: 10
+
+            Column {
+                spacing: 10
+                anchors.centerIn: parent
+                width: 300
+
+                FluText {
+                    text: "下载进度"
+                    color: FluTheme.dark ? FluColors.White : FluColors.Black
+                    font.pixelSize: 20
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Rectangle {
+                    id: p2p_file_download_progress_bar
+                    width: parent.width
+                    height: 6
+                    radius: 3
+                    color: "transparent"
+                    border.width: 1
+                    border.color: FluTheme.primaryColor.normal
+                    Rectangle {
+                        id: p2p_file_download_progress
+                        width: 0
+                        height: 6
+                        radius: 3
+                        color: FluTheme.dark ? FluTheme.primaryColor.lighter : FluTheme.primaryColor.dark
+                    }
+
+                    Behavior on width {
+                        enabled: FluTheme.enableAnimation
+                        NumberAnimation {
+                            duration: 233
+                            easing.type: Easing.InOutExpo
+                        }
+                    }
+                }
+
+                FluText {
+                    id: p2p_file_download_progress_text
+                    color: FluColors.Grey100
+                    font.pixelSize: 12
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                FluTextButton {
+                    width: parent.width
+                    text: "取消下载"
+                    onClicked: {
+                        store.control.cancelP2PFile()
+                        p2p_file_download_progress_popup.visible = false
+                    }
+                }
+
+                Connections {
+                    target: store
+
+                    function onReceiveSizeChanged() {
+                        p2p_file_download_progress_popup.visible = true
+                        var receiveSize = store.receiveSize
+                        var fileSize = store.fileSize
+                        var progress = receiveSize / fileSize
+                        console.log(receiveSize, fileSize, progress)
+                        p2p_file_download_progress.width = p2p_file_download_progress_bar.width * progress
+                        p2p_file_download_progress_text.text = "已下载：" + (receiveSize / 1024 / 1024).toFixed(2) + "MB / " + (fileSize / 1024 / 1024).toFixed(2) + "MB (" + (progress * 100).toFixed(2) + "%)"
+                        if (receiveSize === fileSize) {
+                            p2p_file_download_progress_popup.visible = false
+                            showSuccess("下载完成")
+                            store.recieveSize = 0
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: image_viwer
+        modal: true
+        visible: false
+        opacity: 0
+        anchors.centerIn: Overlay.overlay
+        width: Overlay.overlay.width
+        height: Overlay.overlay.height
+        background: Rectangle {
+            color: "transparent"
+        }
+        enter: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 0.0;
+                to: 1.0
+            }
+        }
+        exit: Transition {
+            NumberAnimation {
+                property: "opacity";
+                from: 1.0;
+                to: 0.0
+            }
+        }
+
+        Image {
+            id: image_viwer_image
+            source: ""
+            anchors.fill: parent
+            fillMode: Image.PreserveAspectFit
+            z: 2333
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    image_viwer_image.source = ""
+                    image_viwer.visible = false
+                }
+            }
         }
     }
 
@@ -981,7 +1341,7 @@ FluPage {
         if (!store.getConfig("chat_tour")) {
             store.setConfig("chat_tour", "done")
             tour_delay.start()
-        } else tour_delay.start()
+        }
     }
 
     Timer {

@@ -3,10 +3,8 @@
 //
 
 #include <QUrlQuery>
-#include <QHttpMultiPart>
-#include <QFile>
-#include <QEventLoop>
-#include <QThreadPool>
+#include <QNetworkInterface>
+#include <QTcpServer>
 #include "net.h"
 #include "global/store.h"
 
@@ -322,6 +320,43 @@ void Net::sendMessage(int gid, QString type, QString content, const std::functio
 }
 
 
+QList<QString> Net::getIPs() {
+    QList < QString > ips;
+    QList < QNetworkInterface > nets = QNetworkInterface::allInterfaces();
+    for (int i = 0; i < nets.count(); i++) {
+        if (nets[i].flags().testFlag(QNetworkInterface::IsUp) &&
+            nets[i].flags().testFlag(QNetworkInterface::IsRunning) &&
+            !nets[i].flags().testFlag(QNetworkInterface::IsLoopBack)) {
+            QList < QNetworkAddressEntry > addrs = nets[i].addressEntries();
+            for (int j = 0; j < addrs.count(); j++) {
+                if (addrs[j].ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                    ips.append(addrs[j].ip().toString());
+                }
+            }
+        }
+    }
+    return ips;
+}
+
+quint16 Net::getPort() {
+    QTcpServer tcpServer;
+    tcpServer.listen(QHostAddress::Any, 0);
+    quint16 port = tcpServer.serverPort();
+    tcpServer.close();
+    return port;
+}
+
+void Net::getUserAddress(int uid, const std::function<void(QString, quint16)> &callback) {
+    QMap<QString, QString> params;
+    params["uid"] = QString::number(uid);
+    get("/user/ip", params, [=](const QJsonDocument &doc) {
+        auto json = doc.object();
+        callback(json["ip"].toString(), json["port"].toString().toInt());
+    });
+}
+
+
+
 Ws::Ws(QObject *parent) : QObject(parent) {
     socket = new QWebSocket();
 
@@ -361,9 +396,10 @@ void Ws::init() {
 
         QJsonObject requestJson;
         requestJson["cookie"] = Store::instance()->getConfig("cookie");
-        requestJson["ip"] = "1.1.1.1";
-        requestJson["port"] = "2333";
+        requestJson["ip"] = Store::instance()->IP();
+        requestJson["port"] = QString::number(Store::instance()->Port());
 
+        qDebug() << "send:" << QJsonDocument(requestJson).toJson();
         socket->sendTextMessage(QJsonDocument(requestJson).toJson());
     });
 }

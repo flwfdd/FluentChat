@@ -58,6 +58,14 @@ Database::Database() {
     if (!query.exec(createTableQuery)) {
         qDebug() << "Failed to create table:" << query.lastError().text();
     }
+
+    // 创建文件哈希表
+    createTableQuery = "CREATE TABLE IF NOT EXISTS `file` ("
+                       "`hash` VARCHAR(255) NOT NULL PRIMARY KEY, "
+                       "`path` TEXT NOT NULL)";
+    if (!query.exec(createTableQuery)) {
+        qDebug() << "Failed to create table:" << query.lastError().text();
+    }
 }
 
 Database *Database::instance() {
@@ -265,3 +273,29 @@ void Database::loadRead(QList<GroupModel *> groups) {
         }
     }
 }
+
+void Database::saveFileHash(QString filePath, QString hash) {
+    QSqlQuery query;
+    QString insertQuery = "INSERT OR REPLACE INTO `file` (`hash`, `path`) VALUES (?, ?)";
+    query.prepare(insertQuery);
+    query.addBindValue(hash);
+    query.addBindValue(filePath);
+    if (!query.exec()) {
+        qDebug() << "Failed to insert file hash:" << query.lastError().text();
+    }
+}
+
+QMap<QString, QString> Database::getFileHashes() {
+    QMap<QString, QString> map;
+    QSqlQuery query;
+    QString selectQuery = "SELECT * FROM `file`";
+    if (!query.exec(selectQuery)) {
+        qDebug() << "Failed to load file hashes:" << query.lastError().text();
+    } else {
+        while (query.next()) {
+            map.insert(query.value(0).toString(), query.value(1).toString());
+        }
+    }
+    return map;
+}
+

@@ -17,11 +17,11 @@ FluPage {
             bgColor: FluTheme.primaryColor.lightest
             avatar: "🥳"
             online: true
-            size: 50
+            size: 100
             anchors.horizontalCenter: parent.horizontalCenter
         }
         FluText {
-            text: "FluentChat"
+            text: "Fluent Chat"
             font.pixelSize: 24
         }
 

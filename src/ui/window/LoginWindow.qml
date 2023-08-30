@@ -53,6 +53,23 @@ FluWindow {
             anchors.topMargin: 20
         }
 
+        FluComboBox {
+            id: hasCookie_ip
+            editable: false
+            displayText: {
+                if (currentIndex === -1) return "P2P IP"
+                return currentText
+            }
+            width: parent.width
+            model: ListModel {
+            }
+            Component.onCompleted: {
+                var ips = store.control.getIPs()
+                for (var ip of ips) {
+                    model.append({"text": ip})
+                }
+            }
+        }
 
         FluFilledButton {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -60,6 +77,11 @@ FluWindow {
             Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             text: "直接登录"
             onClicked: {
+                if (hasCookie_ip.currentText === "") {
+                    showError("请选择当前IP")
+                    return
+                }
+                store.IP = hasCookie_ip.currentText
                 store.control.init()
                 timer.start()
             }
@@ -113,6 +135,23 @@ FluWindow {
             width: parent.width
             placeholderText: "密码"
         }
+        FluComboBox {
+            id: login_ip
+            editable: false
+            displayText: {
+                if (currentIndex === -1) return "P2P IP"
+                return currentText
+            }
+            width: parent.width
+            model: ListModel {
+            }
+            Component.onCompleted: {
+                var ips = store.control.getIPs()
+                for (var ip of ips) {
+                    model.append({"text": ip})
+                }
+            }
+        }
         FluFilledButton {
             id: login_button
             anchors.horizontalCenter: parent.horizontalCenter
@@ -124,6 +163,7 @@ FluWindow {
                     var salt = "FluentChat"
                     var ori_password = login_password.text + salt
                     var hash = Qt.md5(ori_password)
+                    store.IP = login_ip.currentText
                     store.control.login(login_username.text, hash)
                 }
             }
@@ -140,6 +180,10 @@ FluWindow {
                 }
                 if (login_password.text.length === 0) {
                     showError("密码不能为空")
+                    return false
+                }
+                if (login_ip.currentText === "") {
+                    showError("请选择当前IP")
                     return false
                 }
                 return true
@@ -209,6 +253,23 @@ FluWindow {
                 register_color.colorValue = FluTheme.primaryColor.normal
             }
         }
+        FluComboBox {
+            id: register_ip
+            editable: false
+            displayText: {
+                if (currentIndex === -1) return "P2P IP"
+                return currentText
+            }
+            width: parent.width
+            model: ListModel {
+            }
+            Component.onCompleted: {
+                var ips = store.control.getIPs()
+                for (var ip of ips) {
+                    model.append({"text": ip})
+                }
+            }
+        }
         FluFilledButton {
             id: register_button
             anchors.horizontalCenter: parent.horizontalCenter
@@ -220,6 +281,7 @@ FluWindow {
                     var salt = "FluentChat"
                     var ori_password = regiter_password.text + salt
                     var hash = Qt.md5(ori_password)
+                    store.IP = register_ip.currentText
                     store.control.registerUser(register_username.text, hash, register_nickname.text, register_color.colorValue, register_avatar.text)
                 }
             }
@@ -248,6 +310,10 @@ FluWindow {
                 }
                 if (register_avatar.text.length === 0) {
                     showError("头像字不能为空")
+                    return false
+                }
+                if (register_ip.currentText === "") {
+                    showError("请选择当前IP")
                     return false
                 }
                 return true

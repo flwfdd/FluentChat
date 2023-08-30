@@ -129,8 +129,8 @@ Item {
                                 case "file":
                                     text += "[文件]"
                                     break
-                                case "online_file":
-                                    text += "[直传文件]"
+                                case "p2p_file":
+                                    text += "[P2P文件]"
                                     break
                             }
                             return text

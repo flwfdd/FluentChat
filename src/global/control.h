@@ -13,9 +13,13 @@
 #include "model/user.h"
 #include "data/net.h"
 #include "data/database.h"
+#include "data/p2p/serverfiletrans.h"
+#include "data/p2p/clientfiletrans.h"
 
 class Control : public QObject {
 Q_OBJECT
+
+
 
 public:
     explicit Control(QObject *parent = nullptr);
@@ -29,6 +33,8 @@ public:
     Q_INVOKABLE void sendImage(int gid, QString filePath);
 
     Q_INVOKABLE void sendFile(int gid, QString filePath, QString fileName);
+
+    Q_INVOKABLE void sendP2PFile(int gid, QString filePath, QString fileName);
 
     Q_INVOKABLE void openGroup(GroupModel *item);
 
@@ -50,13 +56,20 @@ public:
 
     Q_INVOKABLE void setGroupRemark(QString remark);
 
-    Q_INVOKABLE void saveBase64File(QString filePath,QString base64);
+    Q_INVOKABLE void saveBase64File(QString filePath, QString base64);
+
+    Q_INVOKABLE void saveP2PFile(int uid,QString savePath, QString fileHash);
+
+    Q_INVOKABLE void cancelP2PFile();
+
+    Q_INVOKABLE QList<QString> getIPs();
 
     QList<UserModel *> getUsers(QList<int> ids); // 加载用户到Users Map 返回的可能会延迟加载
 
     void showSuccess(const QString &message);
 
     void showError(const QString &message);
+
 
 
 
@@ -78,6 +91,9 @@ private:
 
     QSet<UserModel *> checkOnlineUids;
     int onlineStatusTimerInterval = 1000 * 30; // 30s
+
+    ServerFileTrans *serverFileTrans;
+    ClientFileTrans *clientFileTrans;
 };
 
 

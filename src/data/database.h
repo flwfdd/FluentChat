@@ -36,6 +36,10 @@ public:
 
     void loadRead(QList<GroupModel *> groups); // 加载已读消息
 
+    void saveFileHash(QString filePath, QString hash); // 保存文件hash
+
+    QMap<QString, QString> getFileHashes(); // 获取所有文件hash
+
 private:
     QSqlDatabase db;
 

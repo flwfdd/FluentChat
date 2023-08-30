@@ -13,6 +13,8 @@ Control::Control(QObject *parent) : QObject(parent) {
     auto onlineStatusTimer = new QTimer(this);
     connect(onlineStatusTimer, &QTimer::timeout, this, &Control::updateOnlineStatus);
     onlineStatusTimer->start(onlineStatusTimerInterval);
+    serverFileTrans = nullptr;
+    clientFileTrans = nullptr;
 }
 
 Control *Control::instance() {
@@ -22,6 +24,25 @@ Control *Control::instance() {
 
 void Control::initConnect() {
     connect(Store::instance(), &Store::currentGroupChanged, this, &Control::initMessageList);
+}
+
+void Control::init() {
+    Store::instance()->setPort(net->getPort());
+    auto fileHashes = db->getFileHashes();
+    for (auto it = fileHashes.begin(); it != fileHashes.end(); it++) {
+        Store::instance()->setFileHash2Path(it.key(), it.value());
+    }
+    serverFileTrans = new ServerFileTrans(Store::instance()->IP(), Store::instance()->Port());
+    Ws::instance()->init();
+    if (Store::instance()->currentUser() == nullptr) {
+        QString uid = Store::instance()->getConfig("loginUid");
+        if (uid.isEmpty())return;
+        Store::instance()->setCurrentUser(getUsers(QList < int > () << uid.toInt()).first());
+    }
+    Store::instance()->groupList()->setItems(db->getGroups());
+    Net::instance()->loadGroups();
+
+    updateOnlineStatus();
 }
 
 void Control::sendMessage(int gid, QString type, QString content) {
@@ -169,19 +190,6 @@ QList<UserModel *> Control::getUsers(QList<int> ids) {
     return userList;
 }
 
-void Control::init() {
-    Ws::instance()->init();
-    if (Store::instance()->currentUser() == nullptr) {
-        QString uid = Store::instance()->getConfig("loginUid");
-        if (uid.isEmpty())return;
-        Store::instance()->setCurrentUser(getUsers(QList < int > () << uid.toInt()).first());
-    }
-    Store::instance()->groupList()->setItems(db->getGroups());
-    Net::instance()->loadGroups();
-
-    updateOnlineStatus();
-}
-
 void Control::loadMessages() {
     if (Store::instance()->currentGroup() == nullptr || !Store::instance()->messageList()->hasMore())return;
     auto group = Store::instance()->currentGroup();
@@ -313,6 +321,7 @@ void Control::sendFile(int gid, QString filePath, QString fileName) {
     QJsonObject json;
     json.insert("name", fileName);
     json.insert("data", base64String);
+    json.insert("size", QString::number(fileData.size()));
     auto messageString = QJsonDocument(json).toJson(QJsonDocument::Compact);
     if (messageString.size() > 1024 * 1024 * 10) {
         showError("大于10M文件请使用P2P同传");
@@ -336,3 +345,49 @@ void Control::saveBase64File(QString filePath, QString base64) {
     showSuccess("保存成功");
 }
 
+QList<QString> Control::getIPs() {
+    auto list = Net::instance()->getIPs();
+    std::sort(list.begin(), list.end());
+    return list;
+}
+
+void Control::sendP2PFile(int gid, QString filePath, QString fileName) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "open file error";
+    }
+    QByteArray fileData = file.readAll();
+    file.close();
+    QJsonObject json;
+    json.insert("name", fileName);
+    json.insert("size", QString::number(fileData.size()));
+    json.insert("hash", QUuid::createUuid().toString());
+    Store::instance()->setFileHash2Path(json.value("hash").toString(), filePath);
+    Database::instance()->saveFileHash(filePath, json.value("hash").toString());
+    auto messageString = QJsonDocument(json).toJson(QJsonDocument::Compact);
+    qDebug() << messageString;
+    sendMessage(gid, "p2p_file", messageString);
+}
+
+
+void Control::saveP2PFile(int uid, QString savePath, QString fileHash) {
+    Net::instance()->getUserAddress(uid, [=](QString ip, quint16 port) {
+        if (clientFileTrans != nullptr) {
+            clientFileTrans->cancelTrans();
+        }
+        clientFileTrans = new ClientFileTrans(ip, port);
+//    clientFileTrans = new ClientFileTrans(Store::instance()->IP(), Store::instance()->Port());
+        clientFileTrans->onSizeChanged([=](qint64 nowSize, qint64 totalSize) {
+//            qDebug() << "size:" << nowSize << totalSize;
+            Store::instance()->setReceiveSize(nowSize);
+            Store::instance()->setFileSize(totalSize);
+        });
+        clientFileTrans->startTrans(fileHash, savePath);
+    });
+}
+
+void Control::cancelP2PFile() {
+    if (clientFileTrans != nullptr) {
+        clientFileTrans->cancelTrans();
+    }
+}

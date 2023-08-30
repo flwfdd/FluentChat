@@ -60,6 +60,12 @@ public:
 
     void sendMessage(int gid, QString type, QString content, const std::function<void()> &callback);
 
+    void getUserAddress(int uid, const std::function<void(QString,quint16)> &callback);
+
+    QList<QString> getIPs();
+
+    quint16 getPort();
+
 private:
 
     QString baseUrl();
