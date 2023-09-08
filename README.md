@@ -28,9 +28,18 @@ API请见[Apifox](https://apifox.com/apidoc/shared-db263d95-ca73-4423-868d-a06de
 git clone --recursive https://github.com/flwfdd/FluentChat.git
 ```
 
-然后使用`Qt Creator`打开根目录下的`CMakeList.txt`即可。启动后程序运行目录会有一个`.ini`可以配置服务端链接。
+然后使用`Qt Creator`打开根目录下的`CMakeList.txt`即可。启动后程序运行目录下会有`fluentchat.ini`配置文件和`fluentchat.db`的`sqlite`数据库。
 
-这里使用的版本是Qt 6.5.2的MinGW，安装时除了Android和WASM其他基本都选了，已在Windows和Linux上测试成功。
+这里使用的版本是`Qt 6.5.2`的`MinGW`，安装时除了`Android`和`WASM`其他基本都选了，已在`Windows`和`Linux`上测试成功。
+
+然后[服务端](https://github.com/3RepresentsTheory/IMback/tree/sqlite_ver)，启动！注意是`sqlite_ver`分支，启动后`WebSocket`监听`1234`端口，`HTTP`监听`1235`端口。 （服务端启动后也会自动生成一个`test.db`，不过是在可执行文件所在目录的再上一级目录）
+
+如果更改了服务端监听端口或服务端不在本地，则需要更改（或新建）一个`fluentchat.ini`配置文件在客户端可执行文件的同目录下，内容形如：
+```
+[General]
+httpURL=http://127.0.0.1:1235
+wsURL=ws://127.0.0.1:1234
+```
 
 另外可以看看配套的[服务端仓库](https://github.com/3RepresentsTheory/IMback)
 和内嵌的[P2P文件互传模块仓库](https://github.com/PulsarRX/Qtcptransfile)。
@@ -49,4 +58,4 @@ git submodule update --init --recursive
 ```
 
 之后就可以直接在`.qml`中使用[FluentUI](https://github.com/zhuzichu520/FluentUI)
-了。一个引入例子可见[这个issue](https://github.com/zhuzichu520/FluentUI)。
+了。一个引入例子可见[这个issue](https://github.com/zhuzichu520/FluentUI/issues/142)。

@@ -7,14 +7,11 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
-
-void inject(QQmlApplicationEngine &engine) {
-    auto store = Store::instance();
-    store->control()->initConnect();
-    auto users = Store::instance()->users();
-    auto groupListModel = store->groupList();
-    auto messageListModel = store->messageList();
-    auto groups = new QList<GroupModel *>();
+void test(){
+//    auto users = Store::instance()->users();
+//    auto groupListModel = store->groupList();
+//    auto messageListModel = store->messageList();
+//    auto groups = new QList<GroupModel *>();
 //    auto uids = QList<int>();
 //    for (int i = 1; i < 111; i++) {
 //        uids << i;
@@ -49,6 +46,13 @@ void inject(QQmlApplicationEngine &engine) {
 //    Net::instance()->get("/group/list", QMap<QString, QString>(), [&](QJsonDocument data) {
 //        qDebug() << data;
 //    });
+}
+
+void inject(QQmlApplicationEngine &engine) {
+    auto store = Store::instance();
+    store->control()->initConnect();
+
+    //    Control::instance()->init();
 
     engine.rootContext()->setContextProperty("store", store);
 }

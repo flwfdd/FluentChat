@@ -22,7 +22,7 @@ QString Net::baseUrl() {
 //    const QString baseUrl = "http://10.179.243.187:1235";
     auto url = Store::instance()->getConfig("httpURL");
     if (url.isEmpty()) {
-        url = "http://10.179.243.187:1235";
+        url = "http://127.0.0.1:1235";
         Store::instance()->setConfig("httpURL", url);
     }
     return url;
@@ -376,7 +376,7 @@ void Ws::init() {
 
     QString urlStr = Store::instance()->getConfig("wsURL");
     if (urlStr.isEmpty()) {
-        urlStr = "ws://10.179.243.187:1234";
+        urlStr = "ws://127.0.0.1:1234";
         Store::instance()->setConfig("wsURL", urlStr);
     }
     socket->open(QUrl(urlStr));
